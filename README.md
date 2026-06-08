@@ -22,6 +22,21 @@ ProjectOS は、個人事業主・フリーランス・小規模チーム向け�
 
 ---
 
+## デモ
+
+ProjectOS は以下のURLから確認できます。
+
+https://project-os-belleroom-projects.vercel.app
+
+デモデータを投入する場合は、以下にアクセスしてください。
+
+https://project-os-belleroom-projects.vercel.app/seed
+
+※デモデータはブラウザの localStorage に保存されます。  
+※実データは入力しないでください。
+
+---
+
 ## スクリーンショット
 
 **ダッシュボード** — 今日やること・入金状況・粗利を一画面で確認
