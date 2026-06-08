@@ -484,17 +484,17 @@ export default function ProjectDetail() {
             )}
             <div className="flex items-start justify-between gap-2">
               <h1 className="text-lg font-bold text-gray-900 leading-tight">{project.name}</h1>
-              <div className="flex items-center gap-0.5 shrink-0 mt-0.5">
+              <div className="flex items-center gap-1 sm:gap-0.5 shrink-0 mt-0.5">
                 <button
                   onClick={() => setShowEditModal(true)}
-                  className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors"
+                  className="p-2.5 sm:p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors"
                   title="案件を編集"
                 >
                   <Pencil className="w-3.5 h-3.5" />
                 </button>
                 <button
                   onClick={handleDeleteProject}
-                  className="p-1.5 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-400 transition-colors"
+                  className="p-2.5 sm:p-1.5 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-400 transition-colors"
                   title="案件を削除"
                 >
                   <Trash2 className="w-3.5 h-3.5" />
@@ -628,7 +628,7 @@ export default function ProjectDetail() {
                         </p>
                       )}
                     </div>
-                    <div className="flex items-center gap-0.5 shrink-0 mt-0.5">
+                    <div className="flex items-center gap-1 sm:gap-0.5 shrink-0 mt-0.5">
                       <button
                         onClick={() => {
                           const alreadyInvoiced = invoices.some((i) => i.estimateId === est.id)
@@ -639,28 +639,28 @@ export default function ProjectDetail() {
                           setEditingInvoice(null)
                           setShowInvoiceModal(true)
                         }}
-                        className="p-1.5 rounded-lg hover:bg-emerald-50 text-gray-400 hover:text-emerald-600 transition-colors"
+                        className="p-2.5 sm:p-1.5 rounded-lg hover:bg-emerald-50 text-gray-400 hover:text-emerald-600 transition-colors"
                         title="請求書を作成"
                       >
                         <FilePlus className="w-3.5 h-3.5" />
                       </button>
                       <Link
                         href={`/projects/${projectId}/estimates/${est.id}/preview`}
-                        className="p-1.5 rounded-lg hover:bg-blue-50 text-gray-400 hover:text-blue-600 transition-colors"
+                        className="p-2.5 sm:p-1.5 rounded-lg hover:bg-blue-50 text-gray-400 hover:text-blue-600 transition-colors"
                         title="プレビュー"
                       >
                         <Eye className="w-3.5 h-3.5" />
                       </Link>
                       <button
                         onClick={() => { setEditingEstimate(est); setShowEstimateModal(true) }}
-                        className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors"
+                        className="p-2.5 sm:p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors"
                         title="見積書を編集"
                       >
                         <Pencil className="w-3.5 h-3.5" />
                       </button>
                       <button
                         onClick={() => handleDeleteEstimate(est.id)}
-                        className="p-1.5 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-400 transition-colors"
+                        className="p-2.5 sm:p-1.5 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-400 transition-colors"
                         title="見積書を削除"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
@@ -757,11 +757,11 @@ export default function ProjectDetail() {
                         </div>
                       )}
                     </div>
-                    <div className="flex items-center gap-0.5 shrink-0 mt-0.5">
+                    <div className="flex items-center gap-1 sm:gap-0.5 shrink-0 mt-0.5">
                       {inv.status === 'draft' && (
                         <button
                           onClick={() => handleMarkAsSent(inv.id)}
-                          className="p-1.5 rounded-lg hover:bg-blue-50 text-gray-400 hover:text-blue-600 transition-colors"
+                          className="p-2.5 sm:p-1.5 rounded-lg hover:bg-blue-50 text-gray-400 hover:text-blue-600 transition-colors"
                           title="送付済みにする"
                         >
                           <Send className="w-3.5 h-3.5" />
@@ -770,7 +770,7 @@ export default function ProjectDetail() {
                       {inv.status === 'paid' && (
                         <button
                           onClick={() => handleCancelPayment(inv)}
-                          className="p-1.5 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-400 transition-colors"
+                          className="p-2.5 sm:p-1.5 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-400 transition-colors"
                           title="入金を取り消す"
                         >
                           <Undo2 className="w-3.5 h-3.5" />
@@ -779,7 +779,7 @@ export default function ProjectDetail() {
                       {inv.status !== 'canceled' && (
                         <button
                           onClick={() => { setPaymentTargetInvoice(inv); setShowPaymentModal(true) }}
-                          className="p-1.5 rounded-lg hover:bg-emerald-50 text-gray-400 hover:text-emerald-600 transition-colors"
+                          className="p-2.5 sm:p-1.5 rounded-lg hover:bg-emerald-50 text-gray-400 hover:text-emerald-600 transition-colors"
                           title={inv.status === 'paid' ? '入金を修正' : '入金を記録'}
                         >
                           <Banknote className="w-3.5 h-3.5" />
@@ -787,21 +787,21 @@ export default function ProjectDetail() {
                       )}
                       <Link
                         href={`/projects/${projectId}/invoices/${inv.id}/preview`}
-                        className="p-1.5 rounded-lg hover:bg-blue-50 text-gray-400 hover:text-blue-600 transition-colors"
+                        className="p-2.5 sm:p-1.5 rounded-lg hover:bg-blue-50 text-gray-400 hover:text-blue-600 transition-colors"
                         title="プレビュー"
                       >
                         <Eye className="w-3.5 h-3.5" />
                       </Link>
                       <button
                         onClick={() => { setEditingInvoice(inv); setCreatingFromEstimate(null); setShowInvoiceModal(true) }}
-                        className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors"
+                        className="p-2.5 sm:p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors"
                         title="請求書を編集"
                       >
                         <Pencil className="w-3.5 h-3.5" />
                       </button>
                       <button
                         onClick={() => handleDeleteInvoice(inv.id)}
-                        className="p-1.5 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-400 transition-colors"
+                        className="p-2.5 sm:p-1.5 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-400 transition-colors"
                         title="請求書を削除"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
@@ -877,24 +877,24 @@ export default function ProjectDetail() {
                         )
                       })()}
                     </div>
-                    <div className="flex items-center gap-0.5 shrink-0 mt-0.5">
+                    <div className="flex items-center gap-1 sm:gap-0.5 shrink-0 mt-0.5">
                       <Link
                         href={`/projects/${projectId}/contracts/${con.id}/preview`}
-                        className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors"
+                        className="p-2.5 sm:p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors"
                         title="契約書プレビュー"
                       >
                         <Eye className="w-3.5 h-3.5" />
                       </Link>
                       <button
                         onClick={() => { setEditingContract(con); setShowContractModal(true) }}
-                        className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors"
+                        className="p-2.5 sm:p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors"
                         title="契約情報を編集"
                       >
                         <Pencil className="w-3.5 h-3.5" />
                       </button>
                       <button
                         onClick={() => handleDeleteContract(con.id)}
-                        className="p-1.5 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-400 transition-colors"
+                        className="p-2.5 sm:p-1.5 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-400 transition-colors"
                         title="契約情報を削除"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
@@ -974,17 +974,17 @@ export default function ProjectDetail() {
                     {cost.note && <p className="text-xs text-gray-400 mt-0.5 truncate">{cost.note}</p>}
                   </div>
                   <p className="text-sm font-semibold text-rose-600 shrink-0">{formatCurrency(cost.amount)}</p>
-                  <div className="flex items-center gap-0.5 shrink-0">
+                  <div className="flex items-center gap-1 sm:gap-0.5 shrink-0">
                     <button
                       onClick={() => { setEditingCost(cost); setShowCostModal(true) }}
-                      className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors"
+                      className="p-2.5 sm:p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors"
                       title="編集"
                     >
                       <Pencil className="w-3.5 h-3.5" />
                     </button>
                     <button
                       onClick={() => handleDeleteCost(cost)}
-                      className="p-1.5 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-400 transition-colors"
+                      className="p-2.5 sm:p-1.5 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-400 transition-colors"
                       title="削除"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
@@ -1038,12 +1038,12 @@ export default function ProjectDetail() {
                       <p className="text-sm text-gray-800 mt-0.5 truncate">{f.name}</p>
                       {f.note && <p className="text-xs text-gray-400 mt-0.5 truncate">{f.note}</p>}
                     </div>
-                    <div className="flex items-center gap-0.5 shrink-0">
+                    <div className="flex items-center gap-1 sm:gap-0.5 shrink-0">
                       {hasLink && (
                         <button
                           onClick={() => handleOpenFile(f)}
                           disabled={openingFileId === f.id}
-                          className="p-1.5 rounded-lg hover:bg-blue-50 text-gray-400 hover:text-blue-600 transition-colors disabled:opacity-50"
+                          className="p-2.5 sm:p-1.5 rounded-lg hover:bg-blue-50 text-gray-400 hover:text-blue-600 transition-colors disabled:opacity-50"
                           title="開く"
                         >
                           {f.storagePath && !f.externalUrl && !f.publicUrl
@@ -1053,14 +1053,14 @@ export default function ProjectDetail() {
                       )}
                       <button
                         onClick={() => { setEditingFile(f); setShowFileModal(true) }}
-                        className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors"
+                        className="p-2.5 sm:p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors"
                         title="編集"
                       >
                         <Pencil className="w-3.5 h-3.5" />
                       </button>
                       <button
                         onClick={() => handleDeleteFile(f)}
-                        className="p-1.5 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-400 transition-colors"
+                        className="p-2.5 sm:p-1.5 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-400 transition-colors"
                         title="削除"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
@@ -1261,7 +1261,7 @@ export default function ProjectDetail() {
                         <p className="text-xs text-gray-400 mt-0.5 line-clamp-2">{task.description}</p>
                       )}
                     </div>
-                    <div className="flex items-center gap-0.5 shrink-0">
+                    <div className="flex items-center gap-1 sm:gap-0.5 shrink-0">
                       <button
                         onClick={() => { setEditingTask(task); setShowTaskModal(true) }}
                         className="p-1 text-gray-300 hover:text-gray-500 transition-colors"

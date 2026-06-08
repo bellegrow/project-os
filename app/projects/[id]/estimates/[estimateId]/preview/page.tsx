@@ -105,8 +105,16 @@ export default function EstimatePreviewPage() {
 
       {/* 背景 */}
       <div className="print:bg-white bg-gray-100 min-h-screen py-8 print:py-0">
+        {/* モバイル向け注意 */}
+        <div className="print:hidden sm:hidden px-4 pb-3">
+          <p className="text-xs text-gray-500 bg-white border border-gray-200 rounded-lg px-3 py-2 text-center">
+            横にスクロールして確認できます。印刷・PDF保存はPC表示を推奨します。
+          </p>
+        </div>
+        {/* 横スクロールラッパー */}
+        <div className="overflow-x-auto print:overflow-visible">
         {/* A4用紙 */}
-        <div className="max-w-[794px] mx-auto bg-white print:shadow-none shadow-lg print:p-0 p-[15mm]">
+        <div className="max-w-[794px] mx-auto bg-white print:shadow-none shadow-lg print:p-0 p-[15mm] min-w-[580px] print:min-w-0">
 
           {/* タイトル行 */}
           <div className="flex items-start justify-between mb-8">
@@ -216,6 +224,7 @@ export default function EstimatePreviewPage() {
           <div className="border-t border-gray-200 pt-4 text-xs text-gray-400 text-center mt-8">
             <p>本見積書の有効期限は発行日より{settings.estimateValidDays}日間です。ご不明な点はお気軽にお問い合わせください。</p>
           </div>
+        </div>
         </div>
       </div>
     </>

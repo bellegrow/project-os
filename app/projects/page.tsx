@@ -121,20 +121,22 @@ export default function ProjectsPage() {
   return (
     <div className="min-h-screen bg-gray-50">
       <header className="bg-white border-b border-gray-200 sticky top-0 z-10">
-        <div className="max-w-2xl mx-auto px-4 pt-4 pb-0 flex items-center justify-between">
-          <div>
-            <h1 className="text-base font-bold text-gray-900">ProjectOS</h1>
-            <p className="text-xs text-gray-400">情報を探す時間は、仕事じゃない。</p>
-          </div>
-          <div className="flex items-center gap-2">
-            <StorageModeBadge />
-            <button
-              onClick={() => setShowModal(true)}
-              className="flex items-center gap-1.5 bg-blue-600 text-white text-sm font-medium px-3 py-2 rounded-lg hover:bg-blue-700 transition-colors"
-            >
-              <Plus className="w-4 h-4" />
-              新規案件
-            </button>
+        <div className="max-w-2xl mx-auto px-4 pt-4 pb-0">
+          <div className="sm:flex sm:items-center sm:justify-between">
+            <div className="mb-2 sm:mb-0">
+              <h1 className="text-base font-bold text-gray-900">ProjectOS</h1>
+              <p className="text-xs text-gray-400">情報を探す時間は、仕事じゃない。</p>
+            </div>
+            <div className="flex items-center gap-2">
+              <StorageModeBadge />
+              <button
+                onClick={() => setShowModal(true)}
+                className="flex items-center gap-1.5 bg-blue-600 text-white text-sm font-medium px-3 py-2 rounded-lg hover:bg-blue-700 transition-colors whitespace-nowrap"
+              >
+                <Plus className="w-4 h-4" />
+                新規案件
+              </button>
+            </div>
           </div>
         </div>
         <div className="max-w-2xl mx-auto px-4">
