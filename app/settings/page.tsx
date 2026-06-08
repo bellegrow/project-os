@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Check, Cloud, HardDrive, AlertTriangle, CheckCircle2, XCircle } from 'lucide-react'
+import { Check, Cloud, HardDrive, AlertTriangle, CheckCircle2, XCircle, Download } from 'lucide-react'
 import AppNavTabs from '@/components/AppNavTabs'
 import { useCloudMode } from '@/lib/hooks/useCloudMode'
 import {
@@ -12,6 +12,7 @@ import {
   BusinessSettings,
   SETTINGS_DEFAULTS,
 } from '@/lib/settingsSource'
+import { exportProjectsCsv, exportInvoicesCsv, exportCostsCsv } from '@/lib/csv'
 
 export default function SettingsPage() {
   const isCloud = useCloudMode()
@@ -20,6 +21,8 @@ export default function SettingsPage() {
   const [saving, setSaving] = useState(false)
   const [saveError, setSaveError] = useState<string | null>(null)
   const [mounted, setMounted] = useState(false)
+  const [exporting, setExporting] = useState<string | null>(null)
+  const [exportError, setExportError] = useState<string | null>(null)
 
   useEffect(() => {
     setMounted(true)
@@ -35,6 +38,18 @@ export default function SettingsPage() {
     setForm((prev) => ({ ...prev, [key]: value }))
     setSaved(false)
     setSaveError(null)
+  }
+
+  const handleExport = async (key: string, fn: () => Promise<void>) => {
+    setExporting(key)
+    setExportError(null)
+    try {
+      await fn()
+    } catch {
+      setExportError('CSVの出力に失敗しました。')
+    } finally {
+      setExporting(null)
+    }
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -426,6 +441,35 @@ export default function SettingsPage() {
             </div>
           </div>
         </form>
+
+        {/* データ出力 */}
+        <section className="bg-white border border-gray-200 rounded-xl p-5 mt-6">
+          <h2 className="text-sm font-semibold text-gray-700 mb-1">データ出力</h2>
+          <p className="text-xs text-gray-400 mb-4">蓄積したデータをCSVファイルとして書き出します。Excel・スプレッドシートで開けます。</p>
+          {exportError && (
+            <div className="flex items-center gap-2 text-xs text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2 mb-3">
+              <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
+              {exportError}
+            </div>
+          )}
+          <div className="space-y-2">
+            {[
+              { key: 'projects', label: '案件CSVを出力', fn: exportProjectsCsv },
+              { key: 'invoices', label: '請求CSVを出力', fn: exportInvoicesCsv },
+              { key: 'costs',    label: '原価CSVを出力', fn: exportCostsCsv },
+            ].map(({ key, label, fn }) => (
+              <button
+                key={key}
+                onClick={() => handleExport(key, fn)}
+                disabled={exporting !== null}
+                className="w-full flex items-center justify-between px-4 py-2.5 border border-gray-200 rounded-lg text-sm text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <span>{exporting === key ? '出力中...' : label}</span>
+                <Download className="w-4 h-4 text-gray-400" />
+              </button>
+            ))}
+          </div>
+        </section>
 
         {isCloud === false && (
           <p className="text-xs text-gray-400 text-center mt-4 pb-6">
