@@ -22,6 +22,26 @@ ProjectOS は、個人事業主・フリーランス・小規模チーム向け�
 
 ---
 
+## スクリーンショット
+
+**ダッシュボード** — 今日やること・入金状況・粗利を一画面で確認
+
+![ダッシュボード](docs/screenshots/02_dashboard.png)
+
+**Cmd+K 検索** — どの画面からでも瞬時に横断検索
+
+![Cmd+K検索](docs/screenshots/01_cmdk_yamada.png)
+
+**案件詳細** — 見積・契約・請求・入金を案件単位で一元管理
+
+![案件詳細](docs/screenshots/03_project_fleur.png)
+
+**請求書PDF** — 実務でそのまま使える請求書を出力
+
+![請求書PDF](docs/screenshots/05_invoice_pdf_fleur.png)
+
+---
+
 ## 主な機能
 
 | 機能 | 説明 |
