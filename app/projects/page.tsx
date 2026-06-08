@@ -9,8 +9,7 @@ import { getHearingPreview, checkProjectStatus, ProjectStatusCheck, StatusCheckC
 import { getSettings } from '@/lib/settingsSource'
 import ProjectCard from '@/components/ProjectCard'
 import NewProjectModal from '@/components/NewProjectModal'
-import StorageModeBadge from '@/components/StorageModeBadge'
-import AppNavTabs from '@/components/AppNavTabs'
+import AppShell from '@/components/AppShell'
 import MigrationBanner from '@/components/MigrationBanner'
 
 type StatusFilter = 'アクティブ' | 'すべて' | '商談中' | '提案済' | '受注' | '進行中' | '完了' | '失注'
@@ -119,32 +118,18 @@ export default function ProjectsPage() {
   if (!mounted) return null
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <header className="bg-white border-b border-gray-200 sticky top-0 z-10">
-        <div className="max-w-2xl mx-auto px-4 pt-4 pb-0">
-          <div className="sm:flex sm:items-center sm:justify-between">
-            <div className="mb-2 sm:mb-0">
-              <h1 className="text-base font-bold text-gray-900">ProjectOS</h1>
-              <p className="text-xs text-gray-400">情報を探す時間は、仕事じゃない。</p>
-            </div>
-            <div className="flex items-center gap-2">
-              <StorageModeBadge />
-              <button
-                onClick={() => setShowModal(true)}
-                className="flex items-center gap-1.5 bg-blue-600 text-white text-sm font-medium px-3 py-2 rounded-lg hover:bg-blue-700 transition-colors whitespace-nowrap"
-              >
-                <Plus className="w-4 h-4" />
-                新規案件
-              </button>
-            </div>
-          </div>
+    <AppShell>
+      <main className="max-w-5xl mx-auto px-4 py-6 lg:px-8">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-base font-semibold text-gray-900">案件</h2>
+          <button
+            onClick={() => setShowModal(true)}
+            className="flex items-center gap-1.5 bg-blue-600 text-white text-sm font-medium px-3 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            <Plus className="w-4 h-4" />
+            新規案件
+          </button>
         </div>
-        <div className="max-w-2xl mx-auto px-4">
-          <AppNavTabs current="projects" />
-        </div>
-      </header>
-
-      <main className="max-w-2xl mx-auto px-4 py-6">
         <MigrationBanner onMigrated={async () => {
           const ps = await getProjects()
           setProjects(ps)
@@ -246,6 +231,6 @@ export default function ProjectsPage() {
       {showModal && (
         <NewProjectModal onClose={() => setShowModal(false)} onCreated={handleCreated} />
       )}
-    </div>
+    </AppShell>
   )
 }

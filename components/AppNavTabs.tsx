@@ -5,7 +5,7 @@ import { Settings, Cloud, Search } from 'lucide-react'
 import { useCloudMode } from '@/lib/hooks/useCloudMode'
 
 interface Props {
-  current: 'dashboard' | 'projects' | 'tasks' | 'customers' | 'settings' | 'search'
+  current?: 'dashboard' | 'projects' | 'tasks' | 'customers' | 'settings' | 'search'
 }
 
 export default function AppNavTabs({ current }: Props) {

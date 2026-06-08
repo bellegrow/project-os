@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { Check, Cloud, HardDrive, AlertTriangle, CheckCircle2, XCircle, Download } from 'lucide-react'
-import AppNavTabs from '@/components/AppNavTabs'
+import AppShell from '@/components/AppShell'
 import { useCloudMode } from '@/lib/hooks/useCloudMode'
 import {
   getSettings,
@@ -77,27 +77,9 @@ export default function SettingsPage() {
   const numberInputCls = 'w-24 border border-gray-200 rounded-lg px-3 py-2 text-sm text-right focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent'
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <header className="bg-white border-b border-gray-200 sticky top-0 z-10">
-        <div className="max-w-2xl mx-auto px-4">
-          <div className="py-3 flex items-center justify-between">
-            <h1 className="text-base font-semibold text-gray-900">設定</h1>
-            {isCloud !== null && (
-              <span className={`flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full ${
-                isCloud ? 'bg-blue-50 text-blue-600' : 'bg-gray-100 text-gray-500'
-              }`}>
-                {isCloud
-                  ? <><Cloud className="w-3 h-3" />クラウド保存</>
-                  : <><HardDrive className="w-3 h-3" />ローカル保存</>
-                }
-              </span>
-            )}
-          </div>
-          <AppNavTabs current="settings" />
-        </div>
-      </header>
-
-      <main className="max-w-2xl mx-auto px-4 py-6">
+    <AppShell>
+      <main className="max-w-2xl mx-auto px-4 py-6 lg:px-8">
+        <h2 className="text-base font-semibold text-gray-900 mb-6 hidden lg:block">設定</h2>
 
         {/* 初期設定チェック */}
         <section className="bg-white border border-gray-200 rounded-xl p-5 mb-6">
@@ -477,7 +459,7 @@ export default function SettingsPage() {
           </p>
         )}
       </main>
-    </div>
+    </AppShell>
   )
 }
 

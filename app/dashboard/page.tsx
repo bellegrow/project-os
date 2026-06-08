@@ -3,8 +3,7 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { AlertTriangle, Clock, ListTodo, TrendingUp } from 'lucide-react'
-import AppNavTabs from '@/components/AppNavTabs'
-import StorageModeBadge from '@/components/StorageModeBadge'
+import AppShell from '@/components/AppShell'
 import MigrationBanner from '@/components/MigrationBanner'
 import { getProjects, getAllInvoices, getTodayTasks, getOverdueTasks, getAllProjectCosts } from '@/lib/dataSource'
 import { formatCurrency, isInvoiceOverdue, formatYMD, checkProjectStatus, StatusCheckConfig } from '@/lib/utils'
@@ -170,21 +169,8 @@ export default function DashboardPage() {
   // ─── UI ───────────────────────────────────────────────────
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <header className="bg-white border-b border-gray-200 sticky top-0 z-10">
-        <div className="max-w-2xl mx-auto px-4 pt-4 pb-0 flex items-center justify-between">
-          <div>
-            <h1 className="text-base font-bold text-gray-900">ProjectOS</h1>
-            <p className="text-xs text-gray-400">情報を探す時間は、仕事じゃない。</p>
-          </div>
-          <StorageModeBadge />
-        </div>
-        <div className="max-w-2xl mx-auto px-4">
-          <AppNavTabs current="dashboard" />
-        </div>
-      </header>
-
-      <main className="max-w-2xl mx-auto px-4 py-6 space-y-6">
+    <AppShell>
+      <main className="max-w-5xl mx-auto px-4 py-6 space-y-6 lg:px-8">
 
         <MigrationBanner onMigrated={async () => {
           const [ps, invs] = await Promise.all([getProjects(), getAllInvoices()])
@@ -510,6 +496,6 @@ export default function DashboardPage() {
         )}
 
       </main>
-    </div>
+    </AppShell>
   )
 }

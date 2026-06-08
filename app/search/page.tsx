@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useRef, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { Search, Loader2, FileText, Users, Briefcase, MessageSquare, CheckSquare, Receipt, ScrollText, Mic, Banknote, Paperclip, Calendar } from 'lucide-react'
-import AppNavTabs from '@/components/AppNavTabs'
+import AppShell from '@/components/AppShell'
 import { searchAll } from '@/lib/search'
 import { SearchResult, SearchResultType } from '@/lib/types'
 
@@ -132,10 +132,10 @@ function SearchInner() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="bg-white border-b border-gray-200 shadow-sm">
-        <div className="max-w-2xl mx-auto px-4 pt-4 pb-0">
-          <h1 className="text-base font-semibold text-gray-900 mb-3">検索</h1>
+    <AppShell>
+      <div className="max-w-4xl mx-auto px-4 py-6 lg:px-8">
+        <div className="bg-white border border-gray-200 rounded-xl p-4 mb-4">
+          <h1 className="text-sm font-semibold text-gray-700 mb-3">全文検索</h1>
           <form onSubmit={handleSubmit}>
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
@@ -152,13 +152,8 @@ function SearchInner() {
               )}
             </div>
           </form>
-          <div className="mt-3">
-            <AppNavTabs current="search" />
-          </div>
         </div>
-      </div>
-
-      <div className="max-w-2xl mx-auto px-4 py-4">
+        <div>
         {!searched && !loading && (
           <div className="text-center py-16 text-gray-400">
             <Search className="w-10 h-10 mx-auto mb-3 text-gray-300" />
@@ -186,8 +181,9 @@ function SearchInner() {
             </div>
           </>
         )}
+        </div>
       </div>
-    </div>
+    </AppShell>
   )
 }
 

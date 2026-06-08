@@ -6,8 +6,7 @@ import { ListTodo, Pencil, Trash2, AlertTriangle, ArrowRight } from 'lucide-reac
 import { Task, Project, TaskStatus } from '@/lib/types'
 import { getAllTasks, getProjects, updateTask, deleteTask } from '@/lib/dataSource'
 import { formatYMD } from '@/lib/utils'
-import AppNavTabs from '@/components/AppNavTabs'
-import StorageModeBadge from '@/components/StorageModeBadge'
+import AppShell from '@/components/AppShell'
 import TaskModal from '@/components/TaskModal'
 
 // ── 定数 ────────────────────────────────────────────────────────────────────
@@ -206,25 +205,8 @@ export default function TasksPage() {
   const totalActive = byStatus.todo.length + byStatus.in_progress.length
 
   return (
-    <div className="min-h-screen bg-gray-50">
-
-      {/* ヘッダー */}
-      <header className="bg-white border-b border-gray-200 sticky top-0 z-10">
-        <div className="max-w-2xl mx-auto px-4 pt-4 pb-0">
-          <div className="sm:flex sm:items-center sm:justify-between">
-            <div className="mb-2 sm:mb-0">
-              <h1 className="text-base font-bold text-gray-900">ProjectOS</h1>
-              <p className="text-xs text-gray-400">情報を探す時間は、仕事じゃない。</p>
-            </div>
-            <StorageModeBadge />
-          </div>
-        </div>
-        <div className="max-w-2xl mx-auto px-4">
-          <AppNavTabs current="tasks" />
-        </div>
-      </header>
-
-      <main className="max-w-2xl mx-auto px-4 py-6 lg:max-w-5xl">
+    <AppShell>
+      <main className="max-w-2xl mx-auto px-4 py-6 lg:max-w-7xl lg:px-8">
 
         {/* ページタイトル */}
         <div className="mb-5 flex items-end justify-between">
@@ -327,6 +309,6 @@ export default function TasksPage() {
           onSaved={handleSaved}
         />
       )}
-    </div>
+    </AppShell>
   )
 }

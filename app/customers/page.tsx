@@ -6,8 +6,7 @@ import { Plus, Search, Building2, Globe, ChevronRight } from 'lucide-react'
 import { Customer, Project } from '@/lib/types'
 import { getCustomers, getProjects } from '@/lib/dataSource'
 import { useCloudMode } from '@/lib/hooks/useCloudMode'
-import StorageModeBadge from '@/components/StorageModeBadge'
-import AppNavTabs from '@/components/AppNavTabs'
+import AppShell from '@/components/AppShell'
 import NewCustomerModal from '@/components/NewCustomerModal'
 
 export default function CustomersPage() {
@@ -45,30 +44,18 @@ export default function CustomersPage() {
   if (!mounted) return null
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <header className="bg-white border-b border-gray-200 sticky top-0 z-10">
-        <div className="max-w-2xl mx-auto px-4 pt-4 pb-0 flex items-center justify-between">
-          <div>
-            <h1 className="text-base font-bold text-gray-900">ProjectOS</h1>
-            <p className="text-xs text-gray-400">情報を探す時間は、仕事じゃない。</p>
-          </div>
-          <div className="flex items-center gap-2">
-            <StorageModeBadge />
-            <button
-              onClick={() => setShowModal(true)}
-              className="flex items-center gap-1.5 bg-blue-600 text-white text-sm font-medium px-3 py-2 rounded-lg hover:bg-blue-700 transition-colors"
-            >
-              <Plus className="w-4 h-4" />
-              顧客を追加
-            </button>
-          </div>
+    <AppShell>
+      <main className="max-w-5xl mx-auto px-4 py-6 lg:px-8">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-base font-semibold text-gray-900">顧客管理</h2>
+          <button
+            onClick={() => setShowModal(true)}
+            className="flex items-center gap-1.5 bg-blue-600 text-white text-sm font-medium px-3 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            <Plus className="w-4 h-4" />
+            顧客を追加
+          </button>
         </div>
-        <div className="max-w-2xl mx-auto px-4">
-          <AppNavTabs current="customers" />
-        </div>
-      </header>
-
-      <main className="max-w-2xl mx-auto px-4 py-6">
         {customers.length === 0 ? (
           <div className="text-center py-20">
             <p className="text-3xl mb-4">🏢</p>
@@ -155,6 +142,6 @@ export default function CustomersPage() {
           }}
         />
       )}
-    </div>
+    </AppShell>
   )
 }
