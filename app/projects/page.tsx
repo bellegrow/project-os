@@ -3,11 +3,15 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { Plus, Search, ChevronDown } from 'lucide-react'
-import { Project } from '@/lib/types'
-import { getProjects, getHearings } from '@/lib/storage'
-import { getHearingPreview } from '@/lib/utils'
+import { Project, Invoice, Task, ProjectCost } from '@/lib/types'
+import { getProjects, getHearingsByProjectIds, getAllInvoices, getOverdueTasks, getAllProjectCosts } from '@/lib/dataSource'
+import { getHearingPreview, checkProjectStatus, ProjectStatusCheck, StatusCheckConfig } from '@/lib/utils'
+import { getSettings } from '@/lib/settingsSource'
 import ProjectCard from '@/components/ProjectCard'
 import NewProjectModal from '@/components/NewProjectModal'
+import StorageModeBadge from '@/components/StorageModeBadge'
+import AppNavTabs from '@/components/AppNavTabs'
+import MigrationBanner from '@/components/MigrationBanner'
 
 type StatusFilter = 'アクティブ' | 'すべて' | '商談中' | '提案済' | '受注' | '進行中' | '完了' | '失注'
 type SortOrder = '更新が新しい順' | '最終ヒアリングが古い順' | '放置日数が長い順'
@@ -24,6 +28,10 @@ export default function ProjectsPage() {
   const [projects, setProjects] = useState<Project[]>([])
   const [latestHearings, setLatestHearings] = useState<Record<string, string>>({})
   const [latestHearingDates, setLatestHearingDates] = useState<Record<string, string>>({})
+  const [allInvoices, setAllInvoices] = useState<Invoice[]>([])
+  const [allOverdueTasks, setAllOverdueTasks] = useState<Task[]>([])
+  const [allCosts, setAllCosts] = useState<ProjectCost[]>([])
+  const [statusConfig, setStatusConfig] = useState<Partial<StatusCheckConfig>>({})
   const [searchQuery, setSearchQuery] = useState('')
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('アクティブ')
   const [sortOrder, setSortOrder] = useState<SortOrder>('更新が新しい順')
@@ -53,7 +61,6 @@ export default function ProjectsPage() {
         if (!bDate) return -1
         return new Date(aDate).getTime() - new Date(bDate).getTime()
       }
-      // 放置日数が長い順：商談中・提案済を優先、完了・失注は末尾
       const aDate = latestHearingDates[a.id]
       const bDate = latestHearingDates[b.id]
       const isInactive = (s: string) => s === '完了' || s === '失注'
@@ -62,7 +69,6 @@ export default function ProjectsPage() {
       if (aExcluded && bExcluded) return 0
       if (aExcluded) return 1
       if (bExcluded) return -1
-      // どちらも有効：商談中・提案済を先頭グループに
       const isUrgent = (s: string) => s === '商談中' || s === '提案済'
       const aPriority = isUrgent(a.status) ? 1 : 2
       const bPriority = isUrgent(b.status) ? 1 : 2
@@ -71,20 +77,38 @@ export default function ProjectsPage() {
     })
 
   useEffect(() => {
-    setMounted(true)
-    const ps = getProjects()
-    setProjects(ps)
-    const map: Record<string, string> = {}
-    const dateMap: Record<string, string> = {}
-    ps.forEach((p) => {
-      const hs = getHearings(p.id)
-      if (hs.length > 0) {
-        map[p.id] = getHearingPreview(hs[0].memo)
-        dateMap[p.id] = hs[0].date
+    const loadData = async () => {
+      setMounted(true)
+      const ps = await getProjects()
+      setProjects(ps)
+      const [hearings, invs, odTasks, costs, settings] = await Promise.all([
+        ps.length > 0 ? getHearingsByProjectIds(ps.map((p) => p.id)) : Promise.resolve([]),
+        getAllInvoices(),
+        getOverdueTasks(),
+        getAllProjectCosts(),
+        getSettings(),
+      ])
+      const map: Record<string, string> = {}
+      const dateMap: Record<string, string> = {}
+      for (const h of hearings) {
+        if (!dateMap[h.projectId]) {
+          map[h.projectId] = getHearingPreview(h.memo)
+          dateMap[h.projectId] = h.date
+        }
       }
-    })
-    setLatestHearings(map)
-    setLatestHearingDates(dateMap)
+      setLatestHearings(map)
+      setLatestHearingDates(dateMap)
+      setAllInvoices(invs)
+      setAllOverdueTasks(odTasks)
+      setAllCosts(costs)
+      setStatusConfig({
+        neglectedCheckDays: settings.neglectedCheckDays,
+        neglectedActionDays: settings.neglectedActionDays,
+        profitRateThreshold: settings.profitRateThreshold,
+        costOnlyAsCheck: settings.costOnlyAsCheck,
+      })
+    }
+    loadData()
   }, [])
 
   const handleCreated = (project: Project) => {
@@ -97,22 +121,32 @@ export default function ProjectsPage() {
   return (
     <div className="min-h-screen bg-gray-50">
       <header className="bg-white border-b border-gray-200 sticky top-0 z-10">
-        <div className="max-w-2xl mx-auto px-4 py-4 flex items-center justify-between">
+        <div className="max-w-2xl mx-auto px-4 pt-4 pb-0 flex items-center justify-between">
           <div>
             <h1 className="text-base font-bold text-gray-900">ProjectOS</h1>
             <p className="text-xs text-gray-400">情報を探す時間は、仕事じゃない。</p>
           </div>
-          <button
-            onClick={() => setShowModal(true)}
-            className="flex items-center gap-1.5 bg-blue-600 text-white text-sm font-medium px-3 py-2 rounded-lg hover:bg-blue-700 transition-colors"
-          >
-            <Plus className="w-4 h-4" />
-            新規案件
-          </button>
+          <div className="flex items-center gap-2">
+            <StorageModeBadge />
+            <button
+              onClick={() => setShowModal(true)}
+              className="flex items-center gap-1.5 bg-blue-600 text-white text-sm font-medium px-3 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+            >
+              <Plus className="w-4 h-4" />
+              新規案件
+            </button>
+          </div>
+        </div>
+        <div className="max-w-2xl mx-auto px-4">
+          <AppNavTabs current="projects" />
         </div>
       </header>
 
       <main className="max-w-2xl mx-auto px-4 py-6">
+        <MigrationBanner onMigrated={async () => {
+          const ps = await getProjects()
+          setProjects(ps)
+        }} />
         {projects.length === 0 ? (
           <div className="text-center py-20">
             <p className="text-3xl mb-4">📁</p>
@@ -185,15 +219,22 @@ export default function ProjectsPage() {
               </p>
             ) : (
               <div className="space-y-3">
-                {filteredProjects.map((project) => (
-                  <ProjectCard
-                    key={project.id}
-                    project={project}
-                    lastHearingMemo={latestHearings[project.id]}
-                    lastHearingDate={latestHearingDates[project.id]}
-                    onClick={() => router.push(`/projects/${project.id}`)}
-                  />
-                ))}
+                {filteredProjects.map((project) => {
+                  const invs = allInvoices.filter((inv) => inv.projectId === project.id)
+                  const odTasks = allOverdueTasks.filter((t) => t.projectId === project.id)
+                  const costs = allCosts.filter((c) => c.projectId === project.id)
+                  const statusCheck = checkProjectStatus(project, invs, odTasks, costs, statusConfig)
+                  return (
+                    <ProjectCard
+                      key={project.id}
+                      project={project}
+                      lastHearingMemo={latestHearings[project.id]}
+                      lastHearingDate={latestHearingDates[project.id]}
+                      statusCheck={statusCheck}
+                      onClick={() => router.push(`/projects/${project.id}`)}
+                    />
+                  )
+                })}
               </div>
             )}
           </>

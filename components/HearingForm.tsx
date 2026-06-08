@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import { ArrowLeft } from 'lucide-react'
-import { getProject, createHearing } from '@/lib/storage'
+import { getProject, createHearing } from '@/lib/dataSource'
 import { Project } from '@/lib/types'
 
 export default function HearingForm() {
@@ -17,14 +17,14 @@ export default function HearingForm() {
   const [submitting, setSubmitting] = useState(false)
 
   useEffect(() => {
-    setProject(getProject(projectId) ?? null)
+    getProject(projectId).then((p) => setProject(p ?? null))
   }, [projectId])
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!memo.trim()) return
     setSubmitting(true)
-    createHearing({ projectId, date, memo: memo.trim() })
+    await createHearing({ projectId, date, memo: memo.trim() })
     router.push(`/projects/${projectId}`)
   }
 
@@ -69,7 +69,7 @@ export default function HearingForm() {
             </label>
             <p className="text-xs text-gray-400 mb-2">
               聞いた内容をそのまま書いてください。箇条書きでも文章でも構いません。
-              このメモが提案書骨子の材料になります。
+              打ち合わせ内容や決定事項を自由に記録してください。あとから案件の流れを振り返るためのメモとして使えます。
             </p>
             <textarea
               value={memo}

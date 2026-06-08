@@ -1,9 +1,10 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { X } from 'lucide-react'
-import { Project, ProjectStatus } from '@/lib/types'
-import { updateProject } from '@/lib/storage'
+import { Project, ProjectStatus, Customer } from '@/lib/types'
+import { updateProject, getCustomers } from '@/lib/dataSource'
+import { useCloudMode } from '@/lib/hooks/useCloudMode'
 
 interface Props {
   project: Project
@@ -14,23 +15,55 @@ interface Props {
 const STATUS_OPTIONS: ProjectStatus[] = ['商談中', '提案済', '受注', '進行中', '完了', '失注']
 
 export default function EditProjectModal({ project, onClose, onSaved }: Props) {
+  const isCloud = useCloudMode()
+  const [customers, setCustomers] = useState<Customer[]>([])
+  // '' = 手動入力（顧客紐付けなし or 変更しない）
+  const [selectedCustomerId, setSelectedCustomerId] = useState<string>(project.customerId ?? '')
   const [clientName, setClientName] = useState(project.clientName)
   const [name, setName] = useState(project.name)
   const [budget, setBudget] = useState(project.budget ? String(project.budget) : '')
   const [status, setStatus] = useState<ProjectStatus>(project.status)
+  const [submitting, setSubmitting] = useState(false)
 
-  const handleSubmit = (e: React.FormEvent) => {
+  useEffect(() => {
+    if (isCloud) {
+      getCustomers().then(setCustomers)
+    }
+  }, [isCloud])
+
+  // 顧客選択時はクライアント名を自動同期
+  useEffect(() => {
+    if (selectedCustomerId) {
+      const c = customers.find((c) => c.id === selectedCustomerId)
+      if (c) setClientName(c.name)
+    }
+  }, [selectedCustomerId, customers])
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!clientName.trim() || !name.trim()) return
+    const effectiveClientName = clientName.trim()
+    if (!effectiveClientName || !name.trim()) return
     const budgetNum = budget ? parseInt(budget.replace(/[^0-9]/g, ''), 10) || undefined : undefined
-    const updated = updateProject(project.id, {
-      clientName: clientName.trim(),
+    setSubmitting(true)
+
+    const patch: Partial<Pick<Project, 'clientName' | 'name' | 'budget' | 'status' | 'customerId'>> = {
+      clientName: effectiveClientName,
       name: name.trim(),
       status,
       budget: budgetNum,
-    })
+    }
+    // クラウドモードで顧客が選択されている場合のみ customerId を更新
+    if (isCloud && selectedCustomerId) {
+      patch.customerId = selectedCustomerId
+    }
+
+    const updated = await updateProject(project.id, patch)
+    setSubmitting(false)
     if (updated) onSaved(updated)
   }
+
+  // ローカル版と同等の clientName 入力が必要か
+  const showManualClientName = !isCloud || !selectedCustomerId
 
   return (
     <div
@@ -49,20 +82,47 @@ export default function EditProjectModal({ project, onClose, onSaved }: Props) {
         </div>
 
         <form onSubmit={handleSubmit} className="p-5 space-y-4">
+          {/* クライアント */}
           <div>
             <label className="block text-xs font-medium text-gray-700 mb-1.5">
-              クライアント名 <span className="text-red-400">*</span>
+              クライアント <span className="text-red-400">*</span>
             </label>
-            <input
-              type="text"
-              value={clientName}
-              onChange={(e) => setClientName(e.target.value)}
-              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              autoFocus
-              required
-            />
+            {isCloud ? (
+              <>
+                <select
+                  value={selectedCustomerId}
+                  onChange={(e) => setSelectedCustomerId(e.target.value)}
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="">─ 手動入力 ─</option>
+                  {customers.map((c) => (
+                    <option key={c.id} value={c.id}>{c.name}</option>
+                  ))}
+                </select>
+                {showManualClientName && (
+                  <input
+                    type="text"
+                    value={clientName}
+                    onChange={(e) => setClientName(e.target.value)}
+                    placeholder="クライアント名"
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent mt-2"
+                    required
+                  />
+                )}
+              </>
+            ) : (
+              <input
+                type="text"
+                value={clientName}
+                onChange={(e) => setClientName(e.target.value)}
+                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                autoFocus
+                required
+              />
+            )}
           </div>
 
+          {/* 案件名 */}
           <div>
             <label className="block text-xs font-medium text-gray-700 mb-1.5">
               案件名 <span className="text-red-400">*</span>
@@ -72,6 +132,7 @@ export default function EditProjectModal({ project, onClose, onSaved }: Props) {
               value={name}
               onChange={(e) => setName(e.target.value)}
               className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              autoFocus={!isCloud}
               required
             />
           </div>
@@ -111,10 +172,10 @@ export default function EditProjectModal({ project, onClose, onSaved }: Props) {
             </button>
             <button
               type="submit"
-              disabled={!clientName.trim() || !name.trim()}
+              disabled={submitting || !clientName.trim() || !name.trim()}
               className="flex-1 bg-blue-600 text-white text-sm font-medium py-2.5 rounded-xl hover:bg-blue-700 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
             >
-              保存する
+              {submitting ? '保存中...' : '保存する'}
             </button>
           </div>
         </form>

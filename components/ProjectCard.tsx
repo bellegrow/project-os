@@ -1,29 +1,42 @@
+import Link from 'next/link'
 import { Project } from '@/lib/types'
-import { formatRelativeDate, formatCurrency, daysSince } from '@/lib/utils'
+import { formatRelativeDate, formatCurrency, daysSince, ProjectStatusCheck } from '@/lib/utils'
 import StatusBadge from './StatusBadge'
+import ProjectStatusBadge from './ProjectStatusBadge'
 import { ChevronRight } from 'lucide-react'
 
 interface Props {
   project: Project
   lastHearingMemo?: string
   lastHearingDate?: string
+  statusCheck?: ProjectStatusCheck
   onClick: () => void
 }
 
-export default function ProjectCard({ project, lastHearingMemo, lastHearingDate, onClick }: Props) {
+export default function ProjectCard({ project, lastHearingMemo, lastHearingDate, statusCheck, onClick }: Props) {
   const stale =
     lastHearingDate && (project.status === '商談中' || project.status === '提案済')
       ? daysSince(lastHearingDate)
       : 0
 
   return (
-    <button
+    <div
       onClick={onClick}
-      className="w-full bg-white border border-gray-200 rounded-xl p-4 text-left hover:border-blue-300 hover:shadow-sm transition-all group"
+      className="w-full bg-white border border-gray-200 rounded-xl p-4 text-left hover:border-blue-300 hover:shadow-sm transition-all group cursor-pointer"
     >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
-          <p className="text-xs text-gray-500 mb-0.5">{project.clientName}</p>
+          {project.customerId ? (
+            <Link
+              href={`/customers/${project.customerId}`}
+              onClick={(e) => e.stopPropagation()}
+              className="text-xs text-blue-600 hover:underline mb-0.5 inline-block"
+            >
+              {project.clientName}
+            </Link>
+          ) : (
+            <p className="text-xs text-gray-500 mb-0.5">{project.clientName}</p>
+          )}
           <h3 className="text-sm font-semibold text-gray-900 truncate">{project.name}</h3>
           <div className="flex items-center gap-2 mt-2 flex-wrap">
             <StatusBadge status={project.status} />
@@ -34,6 +47,9 @@ export default function ProjectCard({ project, lastHearingMemo, lastHearingDate,
               <span className="text-xs font-medium text-amber-600 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded-md">
                 {stale}日動きなし
               </span>
+            )}
+            {statusCheck && statusCheck.level !== 'ok' && (
+              <ProjectStatusBadge check={statusCheck} />
             )}
           </div>
           {lastHearingMemo && (
@@ -52,6 +68,6 @@ export default function ProjectCard({ project, lastHearingMemo, lastHearingDate,
           <ChevronRight className="w-4 h-4 text-gray-300 group-hover:text-gray-400 transition-colors" />
         </div>
       </div>
-    </button>
+    </div>
   )
 }

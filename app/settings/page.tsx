@@ -1,0 +1,469 @@
+'use client'
+
+import { useState, useEffect } from 'react'
+import { Check, Cloud, HardDrive, AlertTriangle, CheckCircle2, XCircle } from 'lucide-react'
+import AppNavTabs from '@/components/AppNavTabs'
+import { useCloudMode } from '@/lib/hooks/useCloudMode'
+import {
+  getSettings,
+  saveSettings,
+  isIssuerConfigured,
+  isBankConfigured,
+  BusinessSettings,
+  SETTINGS_DEFAULTS,
+} from '@/lib/settingsSource'
+
+export default function SettingsPage() {
+  const isCloud = useCloudMode()
+  const [form, setForm] = useState<BusinessSettings>(SETTINGS_DEFAULTS)
+  const [saved, setSaved] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [saveError, setSaveError] = useState<string | null>(null)
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  useEffect(() => {
+    if (!mounted) return
+    if (isCloud === null) return
+    getSettings().then((s) => setForm(s))
+  }, [mounted, isCloud])
+
+  const set = <K extends keyof BusinessSettings>(key: K, value: BusinessSettings[K]) => {
+    setForm((prev) => ({ ...prev, [key]: value }))
+    setSaved(false)
+    setSaveError(null)
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setSaving(true)
+    setSaved(false)
+    setSaveError(null)
+    try {
+      await saveSettings(form)
+      setSaved(true)
+    } catch {
+      setSaveError('設定の保存に失敗しました。時間をおいて再試行してください。')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  if (!mounted) return null
+
+  const issuerOk = isIssuerConfigured(form)
+  const bankOk = isBankConfigured(form)
+  const invoiceNumberOk = form.issuerInvoiceNumber.trim() !== ''
+
+  const inputCls = 'w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent'
+  const numberInputCls = 'w-24 border border-gray-200 rounded-lg px-3 py-2 text-sm text-right focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent'
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      <header className="bg-white border-b border-gray-200 sticky top-0 z-10">
+        <div className="max-w-2xl mx-auto px-4">
+          <div className="py-3 flex items-center justify-between">
+            <h1 className="text-base font-semibold text-gray-900">設定</h1>
+            {isCloud !== null && (
+              <span className={`flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full ${
+                isCloud ? 'bg-blue-50 text-blue-600' : 'bg-gray-100 text-gray-500'
+              }`}>
+                {isCloud
+                  ? <><Cloud className="w-3 h-3" />クラウド保存</>
+                  : <><HardDrive className="w-3 h-3" />ローカル保存</>
+                }
+              </span>
+            )}
+          </div>
+          <AppNavTabs current="settings" />
+        </div>
+      </header>
+
+      <main className="max-w-2xl mx-auto px-4 py-6">
+
+        {/* 初期設定チェック */}
+        <section className="bg-white border border-gray-200 rounded-xl p-5 mb-6">
+          <h2 className="text-sm font-semibold text-gray-700 mb-3">初期設定チェック</h2>
+          <div className="space-y-2">
+            <CheckItem ok={issuerOk} label="事業者名" note={issuerOk ? undefined : '見積書・請求書・契約書のPDFに発行者が表示されません'} />
+            <CheckItem ok={bankOk} label="振込先情報" note={bankOk ? undefined : '請求書PDFに振込先が表示されません'} />
+            <CheckItem ok={invoiceNumberOk} label="インボイス登録番号" optional note={invoiceNumberOk ? undefined : '未設定（インボイス対応不要なら省略可）'} />
+          </div>
+        </section>
+
+        <form onSubmit={handleSubmit} className="space-y-6">
+
+          {/* 保存モード */}
+          <section className="bg-white border border-gray-200 rounded-xl p-5">
+            <h2 className="text-sm font-semibold text-gray-700 mb-3">保存モード</h2>
+            {isCloud === null ? (
+              <p className="text-sm text-gray-400">読み込み中...</p>
+            ) : isCloud ? (
+              <div className="flex items-start gap-3">
+                <Cloud className="w-4 h-4 text-blue-500 mt-0.5 shrink-0" />
+                <div>
+                  <p className="text-sm font-medium text-gray-800">クラウド保存（Supabase）</p>
+                  <p className="text-xs text-gray-500 mt-0.5">ログイン中のアカウントにデータが同期されます。複数端末から同じデータを利用できます。</p>
+                </div>
+              </div>
+            ) : (
+              <div className="flex items-start gap-3">
+                <HardDrive className="w-4 h-4 text-gray-400 mt-0.5 shrink-0" />
+                <div>
+                  <p className="text-sm font-medium text-gray-800">ローカル保存（このブラウザのみ）</p>
+                  <p className="text-xs text-gray-500 mt-0.5">データはこのブラウザにのみ保存されます。ログインするとクラウドに同期できます。</p>
+                </div>
+              </div>
+            )}
+          </section>
+
+          {/* 事業者情報 */}
+          <section className="bg-white border border-gray-200 rounded-xl p-5">
+            <h2 className="text-sm font-semibold text-gray-700 mb-4">事業者情報</h2>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">
+                  事業者名 / 屋号
+                  {!issuerOk && <span className="ml-1 text-amber-500">※未設定</span>}
+                </label>
+                <input
+                  type="text"
+                  value={form.issuerName}
+                  onChange={(e) => set('issuerName', e.target.value)}
+                  placeholder="例：株式会社〇〇"
+                  className={inputCls}
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">部署名・担当者名（任意）</label>
+                  <input
+                    type="text"
+                    value={form.issuerDepartment}
+                    onChange={(e) => set('issuerDepartment', e.target.value)}
+                    placeholder="例：Web制作事業部"
+                    className={inputCls}
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">電話番号（任意）</label>
+                  <input
+                    type="tel"
+                    value={form.issuerPhone}
+                    onChange={(e) => set('issuerPhone', e.target.value)}
+                    placeholder="例：03-1234-5678"
+                    className={inputCls}
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">メールアドレス（任意）</label>
+                <input
+                  type="email"
+                  value={form.issuerEmail}
+                  onChange={(e) => set('issuerEmail', e.target.value)}
+                  placeholder="例：info@example.com"
+                  className={inputCls}
+                />
+              </div>
+              <div className="grid grid-cols-3 gap-3">
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">郵便番号（任意）</label>
+                  <input
+                    type="text"
+                    value={form.issuerPostalCode}
+                    onChange={(e) => set('issuerPostalCode', e.target.value)}
+                    placeholder="例：100-0001"
+                    className={inputCls}
+                  />
+                </div>
+                <div className="col-span-2">
+                  <label className="block text-xs font-medium text-gray-600 mb-1">住所（任意）</label>
+                  <input
+                    type="text"
+                    value={form.issuerAddress}
+                    onChange={(e) => set('issuerAddress', e.target.value)}
+                    placeholder="例：東京都千代田区〇〇1-2-3"
+                    className={inputCls}
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">インボイス登録番号（任意）</label>
+                <input
+                  type="text"
+                  value={form.issuerInvoiceNumber}
+                  onChange={(e) => set('issuerInvoiceNumber', e.target.value)}
+                  placeholder="例：T1234567890123"
+                  className={inputCls}
+                />
+              </div>
+            </div>
+          </section>
+
+          {/* 振込先情報 */}
+          <section className="bg-white border border-gray-200 rounded-xl p-5">
+            <h2 className="text-sm font-semibold text-gray-700 mb-1">
+              振込先情報
+              {!bankOk && <span className="ml-2 text-xs font-normal text-amber-500">※未設定</span>}
+            </h2>
+            <p className="text-xs text-gray-400 mb-4">請求書PDFの振込先欄に表示されます。</p>
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">銀行名</label>
+                  <input
+                    type="text"
+                    value={form.bankName}
+                    onChange={(e) => set('bankName', e.target.value)}
+                    placeholder="例：〇〇銀行"
+                    className={inputCls}
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">支店名</label>
+                  <input
+                    type="text"
+                    value={form.bankBranch}
+                    onChange={(e) => set('bankBranch', e.target.value)}
+                    placeholder="例：〇〇支店"
+                    className={inputCls}
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">口座種別</label>
+                  <select
+                    value={form.bankAccountType}
+                    onChange={(e) => set('bankAccountType', e.target.value)}
+                    className={`${inputCls} bg-white`}
+                  >
+                    <option value="普通">普通</option>
+                    <option value="当座">当座</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">口座番号</label>
+                  <input
+                    type="text"
+                    value={form.bankAccountNumber}
+                    onChange={(e) => set('bankAccountNumber', e.target.value)}
+                    placeholder="例：1234567"
+                    className={inputCls}
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">口座名義（カタカナ）</label>
+                <input
+                  type="text"
+                  value={form.bankAccountHolder}
+                  onChange={(e) => set('bankAccountHolder', e.target.value)}
+                  placeholder="例：カブシキガイシャ〇〇"
+                  className={inputCls}
+                />
+              </div>
+            </div>
+          </section>
+
+          {/* 書類表示設定 */}
+          <section className="bg-white border border-gray-200 rounded-xl p-5">
+            <h2 className="text-sm font-semibold text-gray-700 mb-1">書類表示設定</h2>
+            <p className="text-xs text-gray-400 mb-4">見積書・請求書PDFのデフォルト値として使われます。</p>
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <label className="text-sm text-gray-700">消費税率</label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="number"
+                    min={0}
+                    max={100}
+                    value={form.taxRate}
+                    onChange={(e) => set('taxRate', Number(e.target.value))}
+                    className={numberInputCls}
+                  />
+                  <span className="text-sm text-gray-500">%</span>
+                </div>
+              </div>
+              <div className="flex items-center justify-between">
+                <label className="text-sm text-gray-700">見積書の有効期限</label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="number"
+                    min={1}
+                    max={365}
+                    value={form.estimateValidDays}
+                    onChange={(e) => set('estimateValidDays', Number(e.target.value))}
+                    className={numberInputCls}
+                  />
+                  <span className="text-sm text-gray-500">日</span>
+                </div>
+              </div>
+              <div className="flex items-center justify-between">
+                <label className="text-sm text-gray-700">請求書の支払期限</label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="number"
+                    min={1}
+                    max={365}
+                    value={form.invoiceDueDays}
+                    onChange={(e) => set('invoiceDueDays', Number(e.target.value))}
+                    className={numberInputCls}
+                  />
+                  <span className="text-sm text-gray-500">日</span>
+                </div>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">書類備考文（任意）</label>
+                <textarea
+                  value={form.documentNote}
+                  onChange={(e) => set('documentNote', e.target.value)}
+                  placeholder="例：お振込の際は振込手数料をご負担ください。"
+                  rows={3}
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                />
+              </div>
+            </div>
+          </section>
+
+          {/* 案件状況チェック設定 */}
+          <section className="bg-white border border-gray-200 rounded-xl p-5">
+            <h2 className="text-sm font-semibold text-gray-700 mb-1">案件状況チェック設定</h2>
+            <p className="text-xs text-gray-400 mb-4">案件一覧・ダッシュボードの🔴🟡判定に使われます。</p>
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-gray-700">🟡 要確認とする放置日数</p>
+                  <p className="text-xs text-gray-400">更新が途絶えた日数がこの値以上で要確認</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="number"
+                    min={1}
+                    max={365}
+                    value={form.neglectedCheckDays}
+                    onChange={(e) => set('neglectedCheckDays', Number(e.target.value))}
+                    className={numberInputCls}
+                  />
+                  <span className="text-sm text-gray-500">日</span>
+                </div>
+              </div>
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-gray-700">🔴 要対応とする放置日数</p>
+                  <p className="text-xs text-gray-400">更新が途絶えた日数がこの値以上で要対応</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="number"
+                    min={1}
+                    max={365}
+                    value={form.neglectedActionDays}
+                    onChange={(e) => set('neglectedActionDays', Number(e.target.value))}
+                    className={numberInputCls}
+                  />
+                  <span className="text-sm text-gray-500">日</span>
+                </div>
+              </div>
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-gray-700">🟡 要確認とする利益率</p>
+                  <p className="text-xs text-gray-400">利益率がこの値を下回ると要確認</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="number"
+                    min={0}
+                    max={100}
+                    value={form.profitRateThreshold}
+                    onChange={(e) => set('profitRateThreshold', Number(e.target.value))}
+                    className={numberInputCls}
+                  />
+                  <span className="text-sm text-gray-500">%</span>
+                </div>
+              </div>
+              <label className="flex items-start gap-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={form.costOnlyAsCheck}
+                  onChange={(e) => set('costOnlyAsCheck', e.target.checked)}
+                  className="mt-0.5 w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                />
+                <div>
+                  <p className="text-sm text-gray-700">売上未発生・原価先行を🟡要確認にする</p>
+                  <p className="text-xs text-gray-400">原価が発生しているのに売上がない案件を要確認とする</p>
+                </div>
+              </label>
+            </div>
+          </section>
+
+          {/* 保存ボタン */}
+          <div className="space-y-2 pb-8">
+            {saveError && (
+              <div className="flex items-center gap-2 text-xs text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+                <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
+                {saveError}
+              </div>
+            )}
+            <div className="flex items-center justify-end gap-3">
+              {saved && (
+                <span className="flex items-center gap-1.5 text-sm text-emerald-600">
+                  <Check className="w-4 h-4" />
+                  保存しました
+                </span>
+              )}
+              <button
+                type="submit"
+                disabled={saving}
+                className="bg-blue-600 text-white text-sm font-medium px-5 py-2 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
+              >
+                {saving ? '保存中...' : '設定を保存する'}
+              </button>
+            </div>
+          </div>
+        </form>
+
+        {isCloud === false && (
+          <p className="text-xs text-gray-400 text-center mt-4 pb-6">
+            現在ローカル保存モードです。ログインするとクラウドに同期され、複数端末から利用できます。
+          </p>
+        )}
+      </main>
+    </div>
+  )
+}
+
+function CheckItem({
+  ok,
+  label,
+  note,
+  optional,
+}: {
+  ok: boolean
+  label: string
+  note?: string
+  optional?: boolean
+}) {
+  return (
+    <div className="flex items-start gap-2.5">
+      {ok ? (
+        <CheckCircle2 className="w-4 h-4 text-emerald-500 mt-0.5 shrink-0" />
+      ) : (
+        <XCircle className={`w-4 h-4 mt-0.5 shrink-0 ${optional ? 'text-gray-300' : 'text-amber-400'}`} />
+      )}
+      <div>
+        <span className={`text-sm ${ok ? 'text-gray-700' : optional ? 'text-gray-400' : 'text-gray-700'}`}>
+          {label}
+          {optional && !ok && <span className="ml-1 text-xs text-gray-400">（任意）</span>}
+        </span>
+        {note && (
+          <p className={`text-xs mt-0.5 ${optional ? 'text-gray-400' : 'text-amber-600'}`}>{note}</p>
+        )}
+      </div>
+    </div>
+  )
+}
