@@ -194,7 +194,12 @@ export default function DashboardPage() {
 
         {/* ── 1. 今日やること ─────────────────────────────── */}
         <section>
-          <h2 className="text-sm font-semibold text-gray-700 mb-3">今日やること</h2>
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-sm font-semibold text-gray-700">今日やること</h2>
+            <Link href="/tasks" className="text-xs text-blue-600 hover:text-blue-800 transition-colors">
+              タスクをすべて見る →
+            </Link>
+          </div>
           {!hasTodayActions ? (
             <div className="bg-white border border-gray-200 rounded-xl p-5 text-center">
               <p className="text-sm text-gray-400">今日の緊急案件はありません</p>

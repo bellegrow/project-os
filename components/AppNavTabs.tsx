@@ -5,7 +5,7 @@ import { Settings, Cloud, Search } from 'lucide-react'
 import { useCloudMode } from '@/lib/hooks/useCloudMode'
 
 interface Props {
-  current: 'dashboard' | 'projects' | 'customers' | 'settings' | 'search'
+  current: 'dashboard' | 'projects' | 'tasks' | 'customers' | 'settings' | 'search'
 }
 
 export default function AppNavTabs({ current }: Props) {
@@ -32,6 +32,16 @@ export default function AppNavTabs({ current }: Props) {
         }`}
       >
         案件
+      </Link>
+      <Link
+        href="/tasks"
+        className={`px-4 py-2 text-xs font-medium border-b-2 transition-colors ${
+          current === 'tasks'
+            ? 'border-blue-600 text-blue-600'
+            : 'border-transparent text-gray-400 hover:text-gray-600'
+        }`}
+      >
+        タスク
       </Link>
 
       {isCloud ? (
