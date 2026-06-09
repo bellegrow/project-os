@@ -31,7 +31,7 @@ export function createTenant(input: TenantInput): Tenant {
     contactName: input.contactName,
     email: input.email,
     plan: input.plan,
-    status: 'invited',
+    status: 'pending',
     createdAt: now,
     updatedAt: now,
   }
@@ -46,6 +46,23 @@ export function updateTenantStatus(id: string, status: TenantStatus): void {
     all.map(t =>
       t.id === id
         ? { ...t, status, updatedAt: new Date().toISOString() }
+        : t
+    )
+  )
+}
+
+export function updateTenantInvited(id: string, invitedAt: string, authUserId?: string): void {
+  const all = loadAll()
+  saveAll(
+    all.map(t =>
+      t.id === id
+        ? {
+            ...t,
+            status: 'invited' as TenantStatus,
+            invitedAt,
+            ...(authUserId ? { authUserId } : {}),
+            updatedAt: new Date().toISOString(),
+          }
         : t
     )
   )

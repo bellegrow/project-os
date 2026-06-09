@@ -4,10 +4,10 @@ import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   Plus, Building2, Shield, Ban, Send, LogOut, RotateCcw,
-  Users, CheckCircle2, Clock, XCircle,
+  Users, CheckCircle2, Clock, XCircle, Loader2,
 } from 'lucide-react'
 import { Tenant, TenantInput, TenantStatus } from '@/lib/admin/types'
-import { getTenants, createTenant, updateTenantStatus } from '@/lib/admin/storage'
+import { getTenants, createTenant, updateTenantStatus, updateTenantInvited } from '@/lib/admin/storage'
 import { isAdminEmail } from '@/lib/admin/guard'
 import NewTenantModal from '@/components/admin/NewTenantModal'
 
@@ -19,8 +19,9 @@ const SUPABASE_CONFIGURED = !!(
 // ─── ステータスバッジ設定 ─────────────────────────────────────
 
 const STATUS_CFG: Record<TenantStatus, { label: string; cls: string }> = {
-  active:    { label: '利用中',   cls: 'bg-green-50 text-green-700 border border-green-200' },
-  invited:   { label: '招待待ち', cls: 'bg-amber-50 text-amber-700 border border-amber-200'  },
+  pending:   { label: '招待待ち', cls: 'bg-gray-50 text-gray-500 border border-gray-200'     },
+  invited:   { label: '招待済み', cls: 'bg-amber-50 text-amber-700 border border-amber-200'  },
+  active:    { label: '利用中',   cls: 'bg-green-50 text-green-700 border border-green-200'  },
   suspended: { label: '停止中',   cls: 'bg-red-50 text-red-700 border border-red-200'        },
 }
 
@@ -58,6 +59,7 @@ export default function AdminPage() {
   const [loading,   setLoading]   = useState(true)
   const [showModal, setShowModal] = useState(false)
   const [toast,     setToast]     = useState<string | null>(null)
+  const [inviting,  setInviting]  = useState<string | null>(null)
 
   const showToast = useCallback((msg: string) => setToast(msg), [])
 
@@ -125,11 +127,64 @@ export default function AdminPage() {
     )
   }
 
+  const handleInvite = useCallback(async (tenant: Tenant) => {
+    // localStorage モード: ステータスを招待済みに更新してデモ表示
+    if (!SUPABASE_CONFIGURED) {
+      const now = new Date().toISOString()
+      updateTenantInvited(tenant.id, now)
+      setTenants(prev => prev.map(t =>
+        t.id === tenant.id ? { ...t, status: 'invited', invitedAt: now, updatedAt: now } : t
+      ))
+      showToast(`デモモード：${tenant.companyName} を招待済みに更新しました`)
+      return
+    }
+
+    setInviting(tenant.id)
+    try {
+      const { createClient } = await import('@/lib/supabase/client')
+      const supabase = createClient()
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session?.access_token) {
+        showToast('ログインセッションが見つかりません')
+        return
+      }
+
+      const res = await fetch('/api/admin/invite', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({ email: tenant.email }),
+      })
+
+      const json = await res.json()
+      if (!res.ok) {
+        showToast(`招待メールの送信に失敗しました：${json.error ?? '不明なエラー'}`)
+        return
+      }
+
+      const now = new Date().toISOString()
+      updateTenantInvited(tenant.id, now, json.userId ?? undefined)
+      setTenants(prev => prev.map(t =>
+        t.id === tenant.id
+          ? { ...t, status: 'invited', invitedAt: now, authUserId: json.userId ?? undefined, updatedAt: now }
+          : t
+      ))
+      showToast(`${tenant.companyName} に招待メールを送信しました`)
+    } catch {
+      showToast('招待メールの送信に失敗しました')
+    } finally {
+      setInviting(null)
+    }
+  }, [showToast])
+
   // ── 集計 ──────────────────────────────────────────────────
 
   const counts = {
     total:     tenants.length,
     active:    tenants.filter(t => t.status === 'active').length,
+    pending:   tenants.filter(t => t.status === 'pending').length,
     invited:   tenants.filter(t => t.status === 'invited').length,
     suspended: tenants.filter(t => t.status === 'suspended').length,
   }
@@ -199,12 +254,13 @@ export default function AdminPage() {
         </div>
 
         {/* 統計カード */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">
+        <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 mb-5">
           {[
-            { label: '総顧客数', value: counts.total,     icon: Users,         color: 'text-gray-700',  bg: 'bg-gray-100'   },
-            { label: '利用中',   value: counts.active,    icon: CheckCircle2,  color: 'text-green-700', bg: 'bg-green-100'  },
-            { label: '招待待ち', value: counts.invited,   icon: Clock,         color: 'text-amber-700', bg: 'bg-amber-100'  },
-            { label: '停止中',   value: counts.suspended, icon: XCircle,       color: 'text-red-600',   bg: 'bg-red-100'    },
+            { label: '総顧客数', value: counts.total,     icon: Users,        color: 'text-gray-700',  bg: 'bg-gray-100'   },
+            { label: '利用中',   value: counts.active,    icon: CheckCircle2, color: 'text-green-700', bg: 'bg-green-100'  },
+            { label: '招待待ち', value: counts.pending,   icon: Clock,        color: 'text-gray-500',  bg: 'bg-gray-100'   },
+            { label: '招待済み', value: counts.invited,   icon: Send,         color: 'text-amber-700', bg: 'bg-amber-100'  },
+            { label: '停止中',   value: counts.suspended, icon: XCircle,      color: 'text-red-600',   bg: 'bg-red-100'    },
           ].map(s => (
             <div key={s.label} className="bg-white border border-gray-200 rounded-xl p-4">
               <div className="flex items-center gap-2 mb-2">
@@ -283,14 +339,20 @@ export default function AdminPage() {
                       {/* アクション */}
                       <td className="px-4 py-3">
                         <div className="flex items-center justify-end gap-1.5">
-                          {/* 招待送信（常に表示・ダミー） */}
-                          <button
-                            onClick={() => showToast('招待メール送信（未接続）')}
-                            className="flex items-center gap-1 text-xs text-gray-500 hover:text-blue-600 border border-gray-200 hover:border-blue-300 rounded-md px-2 py-1 transition-colors whitespace-nowrap"
-                          >
-                            <Send className="w-3 h-3" />
-                            招待送信
-                          </button>
+                          {/* 招待送信 / 再送 */}
+                          {tenant.status !== 'active' && tenant.status !== 'suspended' ? (
+                            <button
+                              onClick={() => handleInvite(tenant)}
+                              disabled={inviting === tenant.id}
+                              className="flex items-center gap-1 text-xs text-gray-500 hover:text-blue-600 border border-gray-200 hover:border-blue-300 rounded-md px-2 py-1 transition-colors whitespace-nowrap disabled:opacity-40 disabled:cursor-not-allowed"
+                            >
+                              {inviting === tenant.id
+                                ? <Loader2 className="w-3 h-3 animate-spin" />
+                                : <Send className="w-3 h-3" />
+                              }
+                              {tenant.status === 'invited' ? '再送する' : '招待を送る'}
+                            </button>
+                          ) : null}
 
                           {/* 利用停止 or 再開 */}
                           {tenant.status !== 'suspended' ? (
