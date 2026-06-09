@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { isAdminEmail } from '@/lib/admin/guard'
+import { createOrganizationWithOwner } from '@/lib/supabase/organizations'
 
 const SUPABASE_URL      = process.env.NEXT_PUBLIC_SUPABASE_URL
 const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
@@ -37,20 +38,18 @@ export async function POST(request: NextRequest) {
   }
 
   // ── 3. リクエストボディのバリデーション ───────────────────────────
-  let body: { email?: string }
+  let body: { email?: string; companyName?: string }
   try {
     body = await request.json()
   } catch {
     return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 })
   }
-  const { email } = body
+  const { email, companyName } = body
   if (!email || typeof email !== 'string' || !email.includes('@')) {
     return NextResponse.json({ error: 'Missing or invalid email' }, { status: 400 })
   }
 
   // ── 4. redirectTo の決定 ──────────────────────────────────────────
-  // NEXT_PUBLIC_APP_URL が設定されている場合はそれを使用
-  // 未設定の場合はリクエストの origin ヘッダーにフォールバック
   const origin = request.headers.get('origin') ?? ''
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? origin
   const redirectTo = appUrl ? `${appUrl}/auth/callback` : undefined
@@ -69,8 +68,28 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: error.message }, { status: 400 })
   }
 
+  const invitedUserId = data.user?.id ?? null
+
+  // ── 6. 組織を作成して招待ユーザーを owner として追加 ───────────────
+  // TODO: v1.4.1 — 既存テナントの再招待（再送）時は組織作成をスキップする
+  let organizationId: string | null = null
+  if (invitedUserId) {
+    try {
+      const orgName = companyName?.trim() || email.trim().toLowerCase()
+      organizationId = await createOrganizationWithOwner(
+        supabaseAdmin,
+        orgName,
+        invitedUserId
+      )
+    } catch {
+      // 組織作成失敗は招待自体を巻き戻さない（ベストエフォート）
+      // TODO: v1.4.2 — トランザクション化 or 冪等な retry ロジックを追加
+    }
+  }
+
   return NextResponse.json({
     success: true,
-    userId: data.user?.id ?? null,
+    userId: invitedUserId,
+    organizationId,
   })
 }

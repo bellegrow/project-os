@@ -7,7 +7,7 @@ import {
   Users, CheckCircle2, Clock, XCircle, Loader2,
 } from 'lucide-react'
 import { Tenant, TenantInput, TenantStatus } from '@/lib/admin/types'
-import { getTenants, createTenant, updateTenantStatus, updateTenantInvited } from '@/lib/admin/storage'
+import { getTenants, createTenant, updateTenantStatus, updateTenantInvited, updateTenantOrganization } from '@/lib/admin/storage'
 import { isAdminEmail } from '@/lib/admin/guard'
 import NewTenantModal from '@/components/admin/NewTenantModal'
 
@@ -155,7 +155,7 @@ export default function AdminPage() {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${session.access_token}`,
         },
-        body: JSON.stringify({ email: tenant.email }),
+        body: JSON.stringify({ email: tenant.email, companyName: tenant.companyName }),
       })
 
       const json = await res.json()
@@ -166,9 +166,19 @@ export default function AdminPage() {
 
       const now = new Date().toISOString()
       updateTenantInvited(tenant.id, now, json.userId ?? undefined)
+      if (json.organizationId) {
+        updateTenantOrganization(tenant.id, json.organizationId)
+      }
       setTenants(prev => prev.map(t =>
         t.id === tenant.id
-          ? { ...t, status: 'invited', invitedAt: now, authUserId: json.userId ?? undefined, updatedAt: now }
+          ? {
+              ...t,
+              status: 'invited',
+              invitedAt: now,
+              authUserId: json.userId ?? undefined,
+              organizationId: json.organizationId ?? undefined,
+              updatedAt: now,
+            }
           : t
       ))
       showToast(`${tenant.companyName} に招待メールを送信しました`)

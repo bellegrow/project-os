@@ -561,4 +561,58 @@ alter table user_settings add column if not exists cost_only_as_check     boolea
 --   replace_estimate_items / replace_invoice_items RPC は v9.1 で追加
 --   activities は v10 で追加
 --   user_settings 拡張カラム群は v16 で追加
+--   organizations / organization_members は v1.4.0 で追加（以下）
 -- ────────────────────────────────────────────
+
+-- ════════════════════════════════════════════
+-- v1.4.0: マルチテナント基盤
+--   organizations        — テナント（事業者）単位の組織
+--   organization_members — ユーザーと組織の N:M 対応
+--
+-- NOTE: RLS は v1.4.2 で追加予定。現時点では無効。
+-- NOTE: 既存テーブルへの organization_id 付与は v1.4.1 で対応予定。
+-- ════════════════════════════════════════════
+
+create table if not exists organizations (
+  id          uuid primary key default gen_random_uuid(),
+  name        text not null,
+  created_at  timestamptz not null default now()
+);
+
+create table if not exists organization_members (
+  id               uuid primary key default gen_random_uuid(),
+  organization_id  uuid not null references organizations(id) on delete cascade,
+  user_id          uuid not null references auth.users(id) on delete cascade,
+  role             text not null check (role in ('owner', 'admin', 'member')) default 'member',
+  created_at       timestamptz not null default now(),
+  unique (organization_id, user_id)
+);
+
+-- user_id ベースの検索を高速化
+create index if not exists organization_members_user_id_idx
+  on organization_members (user_id);
+
+-- TODO: v1.4.2 — RLS ポリシーを追加する
+--   例:
+--   alter table organizations enable row level security;
+--   alter table organization_members enable row level security;
+--   create policy "members can read own org" on organizations
+--     for select using (
+--       id in (
+--         select organization_id from organization_members
+--         where user_id = auth.uid()
+--       )
+--     );
+--   create policy "members can read own memberships" on organization_members
+--     for select using (user_id = auth.uid());
+
+-- TODO: v1.4.1 — 既存テーブルに organization_id を追加する
+--   alter table customers  add column if not exists organization_id uuid references organizations(id);
+--   alter table projects   add column if not exists organization_id uuid references organizations(id);
+--   alter table tasks      add column if not exists organization_id uuid references organizations(id);
+--   alter table activities add column if not exists organization_id uuid references organizations(id);
+--   alter table estimates  add column if not exists organization_id uuid references organizations(id);
+--   alter table invoices   add column if not exists organization_id uuid references organizations(id);
+--   alter table contracts  add column if not exists organization_id uuid references organizations(id);
+--   alter table project_costs  add column if not exists organization_id uuid references organizations(id);
+--   alter table project_files  add column if not exists organization_id uuid references organizations(id);

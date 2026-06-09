@@ -9,6 +9,16 @@ export interface Organization {
   updatedAt: string
 }
 
+export type OrganizationRole = 'owner' | 'admin' | 'member'
+
+export interface OrganizationMember {
+  id: string
+  organizationId: string
+  userId: string
+  role: OrganizationRole
+  createdAt: string
+}
+
 export type ProjectStatus = '商談中' | '提案済' | '受注' | '進行中' | '完了' | '失注'
 
 export interface Project {

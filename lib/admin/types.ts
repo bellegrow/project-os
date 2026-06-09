@@ -17,10 +17,10 @@ export interface Tenant {
   status: TenantStatus
   createdAt: string
   updatedAt: string
-  // TODO: v1.4+ — organization_members テーブルで管理
-  authUserId?: string   // Supabase Auth user.id（招待後に設定）
-  invitedAt?: string    // 招待メール送信日時
-  lastLoginAt?: string  // 最終ログイン日時
+  authUserId?: string      // Supabase Auth user.id（招待後に設定）
+  invitedAt?: string       // 招待メール送信日時
+  lastLoginAt?: string     // 最終ログイン日時
+  organizationId?: string  // v1.4+ — organizations テーブルの ID
 }
 
 export interface TenantInput {

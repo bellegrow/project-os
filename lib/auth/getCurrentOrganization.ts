@@ -1,25 +1,12 @@
 /**
  * 現在のユーザーが所属する organization の ID を返す。
  *
- * 【現在の実装】
- *   - Supabase モード → user.id を organizationId として代替使用
- *     （現時点では 1 ユーザー = 1 組織 相当）
- *   - localStorage モード → 'local' を返す
+ * - Supabase モード → organization_members テーブルから解決
+ *   （所属なしの場合は user.id をフォールバックとして使用）
+ * - localStorage モード → 'local' を返す
  *
- * TODO: v1.4+ — organizations / organization_members テーブルを実装後、
- *   ユーザーが所属する組織を動的に解決するよう変更する。
- *   例: supabase.from('organization_members').select('organization_id').eq('user_id', user.id)
- *
- * 想定する将来の組織階層:
- *   Organization
- *     ├─ customers
- *     ├─ projects
- *     ├─ tasks
- *     ├─ meetings (activities)
- *     ├─ estimates / invoices
- *     ├─ contracts
- *     ├─ project_costs
- *     └─ project_files
+ * TODO: v1.4.1 — 全データモデルに organization_id を付与する
+ * TODO: v1.4.2 — organization_members に RLS ポリシーを追加する
  */
 export async function getCurrentOrganizationId(): Promise<string> {
   if (
@@ -35,8 +22,14 @@ export async function getCurrentOrganizationId(): Promise<string> {
     const {
       data: { user },
     } = await supabase.auth.getUser()
-    // TODO: v1.4+ — organization_members テーブルから所属 organizationId を取得
-    return user?.id ?? 'anonymous'
+
+    if (!user) return 'anonymous'
+
+    const { getMemberOrganizationId } = await import('@/lib/supabase/organizations')
+    const orgId = await getMemberOrganizationId(supabase, user.id)
+
+    // 組織未所属の場合は user.id を代替使用（後方互換）
+    return orgId ?? user.id
   } catch {
     return 'anonymous'
   }

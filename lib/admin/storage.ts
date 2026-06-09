@@ -51,6 +51,17 @@ export function updateTenantStatus(id: string, status: TenantStatus): void {
   )
 }
 
+export function updateTenantOrganization(id: string, organizationId: string): void {
+  const all = loadAll()
+  saveAll(
+    all.map(t =>
+      t.id === id
+        ? { ...t, organizationId, updatedAt: new Date().toISOString() }
+        : t
+    )
+  )
+}
+
 export function updateTenantInvited(id: string, invitedAt: string, authUserId?: string): void {
   const all = loadAll()
   saveAll(
