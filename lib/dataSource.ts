@@ -13,7 +13,8 @@
 import { Project, Hearing, ProjectStatus, Customer, Contact, Estimate, EstimateStatus, EstimateInput, Invoice, InvoiceStatus, InvoiceInput, PaymentInput, Contract, ContractStatus, ContractInput, Activity, ActivityInput, Task, TaskInput, TaskUpdateInput, ProjectCost, ProjectCostInput, ProjectCostUpdateInput, ProjectFile, ProjectFileInput, ProjectFileUpdateInput, FileCategory } from './types'
 import {
   demoProjectMap, demoCustomers, demoHearings, demoHearingsByProject,
-  demoEstimates, demoEstimatesByProject, demoInvoicesByProject, demoContractsByProject,
+  demoEstimates, demoInvoices, demoContracts,
+  demoEstimatesByProject, demoInvoicesByProject, demoContractsByProject,
   demoTasksByProject, demoCostsByProject, demoFilesByProject,
   demoContactsByCustomer, demoProjects, demoTasks, demoProjectCosts, demoProjectFiles,
   demoActivitiesByProject,
@@ -219,7 +220,7 @@ export async function getEstimates(projectId: string): Promise<Estimate[]> {
 
 export async function getEstimate(id: string): Promise<Estimate | undefined> {
   if (await isCloudMode()) return sbEstimates.getEstimate(id)
-  return storage.getEstimate(id)
+  return storage.getEstimate(id) ?? (id.startsWith('demo-') ? demoEstimates.find(e => e.id === id) : undefined)
 }
 
 export async function createEstimate(input: EstimateInput): Promise<Estimate | undefined> {
@@ -274,7 +275,7 @@ export async function getAllInvoices(
 
 export async function getInvoice(id: string): Promise<Invoice | undefined> {
   if (await isCloudMode()) return sbInvoices.getInvoice(id)
-  return storage.getInvoice(id)
+  return storage.getInvoice(id) ?? (id.startsWith('demo-') ? demoInvoices.find(i => i.id === id) : undefined)
 }
 
 export async function createInvoice(input: InvoiceInput): Promise<Invoice | undefined> {
@@ -329,7 +330,7 @@ export async function getContracts(projectId: string): Promise<Contract[]> {
 
 export async function getContract(id: string): Promise<Contract | undefined> {
   if (await isCloudMode()) return sbContracts.getContract(id)
-  return storage.getContract(id)
+  return storage.getContract(id) ?? (id.startsWith('demo-') ? demoContracts.find(c => c.id === id) : undefined)
 }
 
 export async function createContract(input: ContractInput): Promise<Contract | undefined> {
