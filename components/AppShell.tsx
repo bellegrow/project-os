@@ -75,6 +75,17 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (!process.env.NEXT_PUBLIC_SUPABASE_URL) return
+    const GUARD_EXEMPT = ['/settings', '/admin', '/onboarding', '/login', '/signup', '/auth']
+    if (GUARD_EXEMPT.some(p => pathname === p || pathname.startsWith(p + '/'))) return
+    import('@/lib/settingsSource').then(({ getSettings }) => {
+      getSettings().then(settings => {
+        if (!settings.onboardingCompleted) router.replace('/onboarding')
+      })
+    })
+  }, [pathname, router])
+
+  useEffect(() => {
+    if (!process.env.NEXT_PUBLIC_SUPABASE_URL) return
     import('@/lib/supabase/client').then(({ createClient }) => {
       const supabase = createClient()
       supabase.auth.getSession().then(({ data: { session } }) => {

@@ -28,6 +28,7 @@ type SettingsRow = {
   neglected_action_days: number
   profit_rate_threshold: number
   cost_only_as_check: boolean
+  onboarding_completed: boolean
   created_at: string
   updated_at: string
 }
@@ -67,6 +68,7 @@ function fromRow(row: SettingsRow): BusinessSettings {
     neglectedActionDays: row.neglected_action_days ?? SETTINGS_DEFAULTS.neglectedActionDays,
     profitRateThreshold: row.profit_rate_threshold ?? SETTINGS_DEFAULTS.profitRateThreshold,
     costOnlyAsCheck: row.cost_only_as_check ?? SETTINGS_DEFAULTS.costOnlyAsCheck,
+    onboardingCompleted: row.onboarding_completed ?? false,
   }
 }
 
@@ -119,6 +121,7 @@ export async function saveSettings(settings: BusinessSettings): Promise<void> {
       neglected_action_days: settings.neglectedActionDays,
       profit_rate_threshold: settings.profitRateThreshold,
       cost_only_as_check: settings.costOnlyAsCheck,
+      onboarding_completed: settings.onboardingCompleted,
     },
     { onConflict: 'user_id' }
   )

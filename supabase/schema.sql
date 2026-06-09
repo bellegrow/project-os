@@ -1066,3 +1066,14 @@ alter table user_settings add column if not exists issuer_representative_name te
 alter table user_settings add column if not exists issuer_logo_url            text not null default '';
 alter table user_settings add column if not exists estimate_note              text not null default '';
 alter table user_settings add column if not exists invoice_note               text not null default '';
+
+-- ════════════════════════════════════════════
+-- v1.6.0: user_settings — オンボーディング完了フラグ
+--
+-- 既存ユーザーは onboarding_completed = true (default true) で
+-- オンボーディングをスキップ。新規ユーザーは設定行なし → SETTINGS_DEFAULTS
+-- の onboardingCompleted: false → /onboarding にリダイレクト。
+--
+-- Supabase SQL Editor で実行してください。
+-- ════════════════════════════════════════════
+alter table user_settings add column if not exists onboarding_completed boolean not null default true;

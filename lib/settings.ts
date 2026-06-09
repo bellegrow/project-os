@@ -29,6 +29,8 @@ export interface BusinessSettings {
   neglectedActionDays: number
   profitRateThreshold: number
   costOnlyAsCheck: boolean
+  // オンボーディング
+  onboardingCompleted: boolean
 }
 
 export const SETTINGS_DEFAULTS: BusinessSettings = {
@@ -56,6 +58,7 @@ export const SETTINGS_DEFAULTS: BusinessSettings = {
   neglectedActionDays: 14,
   profitRateThreshold: 20,
   costOnlyAsCheck: true,
+  onboardingCompleted: false,
 }
 
 export function getSettings(): BusinessSettings {
