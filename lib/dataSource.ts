@@ -16,6 +16,7 @@ import {
   demoEstimatesByProject, demoInvoicesByProject, demoContractsByProject,
   demoTasksByProject, demoCostsByProject, demoFilesByProject,
   demoContactsByCustomer, demoProjects, demoTasks, demoProjectCosts, demoProjectFiles,
+  demoActivitiesByProject,
 } from './demoData'
 import * as storage from './storage'
 import * as sbProjects from './supabase/projects'
@@ -356,7 +357,11 @@ export async function getAllActivities(
 
 export async function getActivities(projectId: string): Promise<Activity[]> {
   if (await isCloudMode()) return sbActivities.getActivities(projectId)
-  return storage.getActivities(projectId)
+  const stored = storage.getActivities(projectId)
+  if (stored.length === 0 && demoActivitiesByProject.has(projectId)) {
+    return demoActivitiesByProject.get(projectId)!
+  }
+  return stored
 }
 
 export async function getActivitiesByCustomer(customerId: string): Promise<Activity[]> {

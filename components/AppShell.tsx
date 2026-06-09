@@ -25,6 +25,19 @@ const NAV_MAIN = [
   { href: '/files',      label: 'ファイル管理', icon: FolderOpen,      key: 'files'      },
 ] as const
 
+const NAV_COLORS: Record<string, { activeBg: string; activeIcon: string; mutedBg: string; mutedIcon: string }> = {
+  dashboard:  { activeBg: 'bg-blue-100',    activeIcon: 'text-blue-600',    mutedBg: 'bg-blue-50',    mutedIcon: 'text-blue-400'    },
+  customers:  { activeBg: 'bg-violet-100',  activeIcon: 'text-violet-600',  mutedBg: 'bg-violet-50',  mutedIcon: 'text-violet-400'  },
+  projects:   { activeBg: 'bg-indigo-100',  activeIcon: 'text-indigo-600',  mutedBg: 'bg-indigo-50',  mutedIcon: 'text-indigo-400'  },
+  tasks:      { activeBg: 'bg-rose-100',    activeIcon: 'text-rose-600',    mutedBg: 'bg-rose-50',    mutedIcon: 'text-rose-400'    },
+  meetings:   { activeBg: 'bg-sky-100',     activeIcon: 'text-sky-600',     mutedBg: 'bg-sky-50',     mutedIcon: 'text-sky-400'     },
+  billing:    { activeBg: 'bg-orange-100',  activeIcon: 'text-orange-600',  mutedBg: 'bg-orange-50',  mutedIcon: 'text-orange-400'  },
+  contracts:  { activeBg: 'bg-purple-100',  activeIcon: 'text-purple-600',  mutedBg: 'bg-purple-50',  mutedIcon: 'text-purple-400'  },
+  finance:    { activeBg: 'bg-emerald-100', activeIcon: 'text-emerald-600', mutedBg: 'bg-emerald-50', mutedIcon: 'text-emerald-400' },
+  files:      { activeBg: 'bg-amber-100',   activeIcon: 'text-amber-600',   mutedBg: 'bg-amber-50',   mutedIcon: 'text-amber-400'   },
+  settings:   { activeBg: 'bg-gray-100',    activeIcon: 'text-gray-700',    mutedBg: 'bg-gray-50',    mutedIcon: 'text-gray-400'    },
+}
+
 type NavKey = typeof NAV_MAIN[number]['key'] | 'settings' | 'search'
 
 function getActiveKey(pathname: string): NavKey | null {
@@ -118,17 +131,23 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
   const itemCls = (key: NavKey) =>
     `flex items-center rounded-lg text-sm transition-colors whitespace-nowrap ${
-      collapsed ? 'justify-center px-0 py-2.5' : 'gap-3 px-3 py-2'
+      collapsed ? 'justify-center px-0 py-2' : 'gap-2.5 px-2.5 py-1.5'
     } ${
       isActive(key)
-        ? 'bg-blue-50 text-blue-700 font-semibold'
-        : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900 font-medium'
+        ? 'bg-white text-gray-900 font-semibold shadow-sm'
+        : 'text-slate-600 hover:bg-slate-300/60 hover:text-gray-900 font-medium'
     }`
 
-  const iconCls = (key: NavKey) =>
-    `shrink-0 ${collapsed ? 'w-5 h-5' : 'w-[15px] h-[15px]'} ${
-      isActive(key) ? 'text-blue-600' : 'text-gray-400'
-    }`
+  const iconBadge = (key: NavKey) => {
+    const c = NAV_COLORS[key] ?? NAV_COLORS['settings']
+    const active = isActive(key)
+    return {
+      wrap: `flex items-center justify-center shrink-0 rounded-md transition-colors ${
+        collapsed ? 'w-8 h-8' : 'w-[26px] h-[26px]'
+      } ${active ? c.activeBg : c.mutedBg}`,
+      icon: `${collapsed ? 'w-[18px] h-[18px]' : 'w-[14px] h-[14px]'} ${active ? c.activeIcon : c.mutedIcon}`,
+    }
+  }
 
   const sidebarW  = collapsed ? SIDEBAR_W_CLOSED : SIDEBAR_W_OPEN
   const transition = 'width 200ms ease-in-out'
@@ -139,28 +158,33 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       {/* ── PC サイドバー (lg+) ──────────────────────────────────── */}
       <aside
         style={{ width: `${sidebarW}px`, transition }}
-        className="hidden lg:flex fixed left-0 top-0 bottom-0 flex-col bg-white border-r border-gray-200 z-30 overflow-hidden"
+        className="hidden lg:flex fixed left-0 top-0 bottom-0 flex-col bg-slate-200 border-r border-slate-300 z-30 overflow-hidden"
       >
         {/* ロゴ + 折りたたみトグル */}
         {collapsed ? (
-          <div className="shrink-0 h-14 flex items-center justify-center border-b border-gray-100">
-            <button
-              onClick={toggle}
-              className="p-2 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors"
-              title="サイドバーを展開"
-            >
-              <ChevronRight className="w-4 h-4" />
-            </button>
-          </div>
-        ) : (
-          <div className="shrink-0 px-5 pt-5 pb-4 border-b border-gray-100 flex items-start justify-between gap-2">
-            <div>
-              <div className="text-[15px] font-bold text-gray-900 tracking-tight leading-none">ProjectOS</div>
-              <div className="text-[11px] text-gray-400 mt-1.5 leading-none">情報を探す時間は、仕事じゃない。</div>
+          <div className="shrink-0 h-14 flex flex-col items-center justify-center gap-1 border-b border-slate-300">
+            <div className="w-7 h-7 rounded-lg bg-gray-900 flex items-center justify-center shadow-sm">
+              <span className="text-white font-black text-sm leading-none">P</span>
             </div>
             <button
               onClick={toggle}
-              className="mt-0.5 p-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors shrink-0"
+              className="p-0.5 rounded text-slate-400 hover:text-slate-700 transition-colors"
+              title="サイドバーを展開"
+            >
+              <ChevronRight className="w-3 h-3" />
+            </button>
+          </div>
+        ) : (
+          <div className="shrink-0 px-4 py-4 border-b border-slate-300 flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2.5">
+              <div className="w-7 h-7 rounded-lg bg-gray-900 flex items-center justify-center shrink-0 shadow-sm">
+                <span className="text-white font-black text-sm leading-none">P</span>
+              </div>
+              <span className="text-[15px] font-bold text-slate-900 tracking-tight">ProjectOS</span>
+            </div>
+            <button
+              onClick={toggle}
+              className="p-1.5 rounded-lg text-slate-500 hover:text-slate-800 hover:bg-slate-300 transition-colors shrink-0"
               title="サイドバーを折りたたむ"
             >
               <ChevronLeft className="w-4 h-4" />
@@ -170,38 +194,47 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
         {/* メインナビ */}
         <nav className={`flex-1 py-3 space-y-0.5 overflow-y-auto ${collapsed ? 'px-2' : 'px-3'}`}>
-          {NAV_MAIN.map((item) => (
-            <Link
-              key={item.key}
-              href={item.href}
-              className={itemCls(item.key as NavKey)}
-              title={collapsed ? item.label : undefined}
-            >
-              <item.icon className={iconCls(item.key as NavKey)} />
-              {!collapsed && item.label}
-            </Link>
-          ))}
+          {NAV_MAIN.map((item) => {
+            const badge = iconBadge(item.key as NavKey)
+            return (
+              <Link
+                key={item.key}
+                href={item.href}
+                className={itemCls(item.key as NavKey)}
+                title={collapsed ? item.label : undefined}
+              >
+                <div className={badge.wrap}>
+                  <item.icon className={badge.icon} />
+                </div>
+                {!collapsed && item.label}
+              </Link>
+            )
+          })}
         </nav>
 
         {/* 下部：設定 + ストレージ */}
-        <div className={`shrink-0 pb-4 border-t border-gray-100 pt-3 space-y-0.5 ${collapsed ? 'px-2' : 'px-3'}`}>
+        <div className={`shrink-0 pb-4 border-t border-slate-300 pt-3 space-y-0.5 ${collapsed ? 'px-2' : 'px-3'}`}>
           <Link
             href="/settings"
             className={itemCls('settings')}
             title={collapsed ? '設定' : undefined}
           >
-            <Settings className={iconCls('settings')} />
+            <div className={iconBadge('settings').wrap}>
+              <Settings className={iconBadge('settings').icon} />
+            </div>
             {!collapsed && '設定'}
           </Link>
           {isLoggedIn && (
             <button
               onClick={handleLogout}
-              className={`flex items-center rounded-lg text-sm transition-colors text-gray-500 hover:bg-gray-50 hover:text-red-600 font-medium ${
-                collapsed ? 'justify-center px-0 py-2.5' : 'gap-3 px-3 py-2'
+              className={`flex items-center rounded-lg text-sm transition-colors text-slate-500 hover:bg-slate-300/60 hover:text-red-500 font-medium ${
+                collapsed ? 'justify-center px-0 py-2' : 'gap-2.5 px-2.5 py-1.5'
               }`}
               title={collapsed ? 'ログアウト' : undefined}
             >
-              <LogOut className={`shrink-0 ${collapsed ? 'w-5 h-5' : 'w-[15px] h-[15px]'}`} />
+              <div className={`flex items-center justify-center shrink-0 rounded-md bg-slate-300/60 ${collapsed ? 'w-8 h-8' : 'w-[26px] h-[26px]'}`}>
+                <LogOut className={`${collapsed ? 'w-[18px] h-[18px]' : 'w-[14px] h-[14px]'} text-slate-500`} />
+              </div>
               {!collapsed && 'ログアウト'}
             </button>
           )}
@@ -216,7 +249,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       {/* ── PC 上部検索バー (lg+) ────────────────────────────────── */}
       <div
         style={{ left: `${sidebarW}px`, transition: 'left 200ms ease-in-out' }}
-        className="hidden lg:flex fixed top-0 right-0 h-14 bg-white border-b border-gray-200 z-20 items-center px-6"
+        className="hidden lg:flex fixed top-0 right-0 h-14 bg-white border-b border-slate-300 z-20 items-center px-6"
       >
         <Link
           href="/search"
@@ -229,7 +262,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       </div>
 
       {/* ── モバイルヘッダー (<lg) ───────────────────────────────── */}
-      <header className="lg:hidden bg-white border-b border-gray-200 sticky top-0 z-10">
+      <header className="lg:hidden bg-white border-b border-slate-300 sticky top-0 z-10">
         <div className="max-w-2xl mx-auto px-4 pt-4 pb-0">
           <div className="sm:flex sm:items-center sm:justify-between">
             <div className="mb-2 sm:mb-0">
