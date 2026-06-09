@@ -3,12 +3,14 @@ const SETTINGS_KEY = 'pos_settings'
 export interface BusinessSettings {
   // 事業者情報
   issuerName: string
+  issuerRepresentativeName: string
   issuerDepartment: string
   issuerEmail: string
   issuerPhone: string
   issuerPostalCode: string
   issuerAddress: string
   issuerInvoiceNumber: string
+  issuerLogoUrl: string        // base64 data URL or ''
   // 振込先情報
   bankName: string
   bankBranch: string
@@ -19,7 +21,9 @@ export interface BusinessSettings {
   taxRate: number
   estimateValidDays: number
   invoiceDueDays: number
-  documentNote: string
+  documentNote: string        // 後方互換のため残す
+  estimateNote: string        // 見積書備考
+  invoiceNote: string         // 請求書備考
   // 案件状況チェック設定
   neglectedCheckDays: number
   neglectedActionDays: number
@@ -29,12 +33,14 @@ export interface BusinessSettings {
 
 export const SETTINGS_DEFAULTS: BusinessSettings = {
   issuerName: '',
+  issuerRepresentativeName: '',
   issuerDepartment: '',
   issuerEmail: '',
   issuerPhone: '',
   issuerPostalCode: '',
   issuerAddress: '',
   issuerInvoiceNumber: '',
+  issuerLogoUrl: '',
   bankName: '',
   bankBranch: '',
   bankAccountType: '普通',
@@ -44,6 +50,8 @@ export const SETTINGS_DEFAULTS: BusinessSettings = {
   estimateValidDays: 30,
   invoiceDueDays: 30,
   documentNote: '',
+  estimateNote: '',
+  invoiceNote: '',
   neglectedCheckDays: 7,
   neglectedActionDays: 14,
   profitRateThreshold: 20,

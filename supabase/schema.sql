@@ -1055,3 +1055,14 @@ where tablename in (
   'organizations','organization_members'
 )
 order by tablename, policyname;
+
+-- ════════════════════════════════════════════
+-- v1.5.0: user_settings 拡張
+--   代表者名 / 会社ロゴ / 見積書備考 / 請求書備考
+--
+-- Supabase SQL Editor で実行してください。
+-- ════════════════════════════════════════════
+alter table user_settings add column if not exists issuer_representative_name text not null default '';
+alter table user_settings add column if not exists issuer_logo_url            text not null default '';
+alter table user_settings add column if not exists estimate_note              text not null default '';
+alter table user_settings add column if not exists invoice_note               text not null default '';

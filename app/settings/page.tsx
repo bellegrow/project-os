@@ -1,7 +1,7 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { Check, Cloud, HardDrive, AlertTriangle, CheckCircle2, XCircle, Download } from 'lucide-react'
+import { useState, useEffect, useRef } from 'react'
+import { Check, Cloud, HardDrive, AlertTriangle, CheckCircle2, XCircle, Download, ImageIcon, Trash2 } from 'lucide-react'
 import AppShell from '@/components/AppShell'
 import { useCloudMode } from '@/lib/hooks/useCloudMode'
 import {
@@ -23,6 +23,8 @@ export default function SettingsPage() {
   const [mounted, setMounted] = useState(false)
   const [exporting, setExporting] = useState<string | null>(null)
   const [exportError, setExportError] = useState<string | null>(null)
+  const [logoError, setLogoError] = useState<string | null>(null)
+  const logoInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     setMounted(true)
@@ -68,6 +70,21 @@ export default function SettingsPage() {
   }
 
   if (!mounted) return null
+
+  const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setLogoError(null)
+    if (file.size > 500 * 1024) {
+      setLogoError('ロゴ画像は500KB以下にしてください。')
+      return
+    }
+    const reader = new FileReader()
+    reader.onload = () => {
+      set('issuerLogoUrl', reader.result as string)
+    }
+    reader.readAsDataURL(file)
+  }
 
   const issuerOk = isIssuerConfigured(form)
   const bankOk = isBankConfigured(form)
@@ -119,11 +136,54 @@ export default function SettingsPage() {
 
           {/* 事業者情報 */}
           <section className="bg-white border border-gray-200 rounded-xl p-5">
-            <h2 className="text-sm font-semibold text-gray-700 mb-4">事業者情報</h2>
+            <h2 className="text-sm font-semibold text-gray-700 mb-4">会社情報</h2>
             <div className="space-y-4">
+
+              {/* ロゴ */}
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-2">会社ロゴ（任意）</label>
+                <div className="flex items-center gap-4">
+                  <div className="w-20 h-20 border border-gray-200 rounded-lg flex items-center justify-center bg-gray-50 shrink-0 overflow-hidden">
+                    {form.issuerLogoUrl ? (
+                      <img src={form.issuerLogoUrl} alt="ロゴ" className="w-full h-full object-contain" />
+                    ) : (
+                      <ImageIcon className="w-6 h-6 text-gray-300" />
+                    )}
+                  </div>
+                  <div className="flex flex-col gap-2">
+                    <input
+                      ref={logoInputRef}
+                      type="file"
+                      accept="image/png,image/jpeg,image/gif,image/svg+xml,image/webp"
+                      onChange={handleLogoChange}
+                      className="hidden"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => logoInputRef.current?.click()}
+                      className="text-xs px-3 py-1.5 border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-50 transition-colors"
+                    >
+                      画像を選択
+                    </button>
+                    {form.issuerLogoUrl && (
+                      <button
+                        type="button"
+                        onClick={() => { set('issuerLogoUrl', ''); if (logoInputRef.current) logoInputRef.current.value = '' }}
+                        className="flex items-center gap-1 text-xs px-3 py-1.5 text-red-500 border border-red-200 rounded-lg hover:bg-red-50 transition-colors"
+                      >
+                        <Trash2 className="w-3 h-3" />
+                        削除
+                      </button>
+                    )}
+                    <p className="text-xs text-gray-400">PNG / JPG / SVG・500KB以下</p>
+                  </div>
+                </div>
+                {logoError && <p className="text-xs text-red-500 mt-1">{logoError}</p>}
+              </div>
+
               <div>
                 <label className="block text-xs font-medium text-gray-600 mb-1">
-                  事業者名 / 屋号
+                  会社名・屋号
                   {!issuerOk && <span className="ml-1 text-amber-500">※未設定</span>}
                 </label>
                 <input
@@ -136,6 +196,16 @@ export default function SettingsPage() {
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">代表者名（任意）</label>
+                  <input
+                    type="text"
+                    value={form.issuerRepresentativeName}
+                    onChange={(e) => set('issuerRepresentativeName', e.target.value)}
+                    placeholder="例：山田 太郎"
+                    className={inputCls}
+                  />
+                </div>
+                <div>
                   <label className="block text-xs font-medium text-gray-600 mb-1">部署名・担当者名（任意）</label>
                   <input
                     type="text"
@@ -145,6 +215,8 @@ export default function SettingsPage() {
                     className={inputCls}
                   />
                 </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-medium text-gray-600 mb-1">電話番号（任意）</label>
                   <input
@@ -155,16 +227,16 @@ export default function SettingsPage() {
                     className={inputCls}
                   />
                 </div>
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">メールアドレス（任意）</label>
-                <input
-                  type="email"
-                  value={form.issuerEmail}
-                  onChange={(e) => set('issuerEmail', e.target.value)}
-                  placeholder="例：info@example.com"
-                  className={inputCls}
-                />
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">メールアドレス（任意）</label>
+                  <input
+                    type="email"
+                    value={form.issuerEmail}
+                    onChange={(e) => set('issuerEmail', e.target.value)}
+                    placeholder="例：info@example.com"
+                    className={inputCls}
+                  />
+                </div>
               </div>
               <div className="grid grid-cols-3 gap-3">
                 <div>
@@ -267,9 +339,9 @@ export default function SettingsPage() {
             </div>
           </section>
 
-          {/* 書類表示設定 */}
+          {/* 見積・請求設定 */}
           <section className="bg-white border border-gray-200 rounded-xl p-5">
-            <h2 className="text-sm font-semibold text-gray-700 mb-1">書類表示設定</h2>
+            <h2 className="text-sm font-semibold text-gray-700 mb-1">見積・請求設定</h2>
             <p className="text-xs text-gray-400 mb-4">見積書・請求書PDFのデフォルト値として使われます。</p>
             <div className="space-y-4">
               <div className="flex items-center justify-between">
@@ -301,7 +373,7 @@ export default function SettingsPage() {
                 </div>
               </div>
               <div className="flex items-center justify-between">
-                <label className="text-sm text-gray-700">請求書の支払期限</label>
+                <label className="text-sm text-gray-700">請求書のデフォルト支払期限</label>
                 <div className="flex items-center gap-2">
                   <input
                     type="number"
@@ -315,10 +387,20 @@ export default function SettingsPage() {
                 </div>
               </div>
               <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">書類備考文（任意）</label>
+                <label className="block text-xs font-medium text-gray-600 mb-1">見積書 備考（任意）</label>
                 <textarea
-                  value={form.documentNote}
-                  onChange={(e) => set('documentNote', e.target.value)}
+                  value={form.estimateNote}
+                  onChange={(e) => set('estimateNote', e.target.value)}
+                  placeholder="例：本見積書の有効期限は発行日より30日間です。"
+                  rows={3}
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">請求書 備考（任意）</label>
+                <textarea
+                  value={form.invoiceNote}
+                  onChange={(e) => set('invoiceNote', e.target.value)}
                   placeholder="例：お振込の際は振込手数料をご負担ください。"
                   rows={3}
                   className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"

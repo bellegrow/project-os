@@ -5,12 +5,14 @@ type SettingsRow = {
   id: string
   user_id: string
   issuer_name: string
+  issuer_representative_name: string | null
   issuer_department: string
   issuer_email: string
   issuer_phone: string
   issuer_postal_code: string
   issuer_address: string
   issuer_invoice_number: string
+  issuer_logo_url: string | null
   bank_name: string
   bank_branch: string
   bank_account_type: string
@@ -20,6 +22,8 @@ type SettingsRow = {
   estimate_valid_days: number
   invoice_due_days: number
   document_note: string
+  estimate_note: string | null
+  invoice_note: string | null
   neglected_check_days: number
   neglected_action_days: number
   profit_rate_threshold: number
@@ -36,14 +40,17 @@ function isConfigured(): boolean {
 }
 
 function fromRow(row: SettingsRow): BusinessSettings {
+  const documentNote = row.document_note ?? ''
   return {
     issuerName: row.issuer_name,
+    issuerRepresentativeName: row.issuer_representative_name ?? '',
     issuerDepartment: row.issuer_department,
     issuerEmail: row.issuer_email,
     issuerPhone: row.issuer_phone ?? '',
     issuerPostalCode: row.issuer_postal_code ?? '',
     issuerAddress: row.issuer_address ?? '',
     issuerInvoiceNumber: row.issuer_invoice_number ?? '',
+    issuerLogoUrl: row.issuer_logo_url ?? '',
     bankName: row.bank_name,
     bankBranch: row.bank_branch,
     bankAccountType: row.bank_account_type,
@@ -52,7 +59,10 @@ function fromRow(row: SettingsRow): BusinessSettings {
     taxRate: row.tax_rate ?? SETTINGS_DEFAULTS.taxRate,
     estimateValidDays: row.estimate_valid_days ?? SETTINGS_DEFAULTS.estimateValidDays,
     invoiceDueDays: row.invoice_due_days ?? SETTINGS_DEFAULTS.invoiceDueDays,
-    documentNote: row.document_note ?? '',
+    documentNote,
+    // 旧 documentNote を estimateNote/invoiceNote の初期値として引き継ぐ
+    estimateNote: row.estimate_note ?? documentNote,
+    invoiceNote: row.invoice_note ?? documentNote,
     neglectedCheckDays: row.neglected_check_days ?? SETTINGS_DEFAULTS.neglectedCheckDays,
     neglectedActionDays: row.neglected_action_days ?? SETTINGS_DEFAULTS.neglectedActionDays,
     profitRateThreshold: row.profit_rate_threshold ?? SETTINGS_DEFAULTS.profitRateThreshold,
@@ -86,12 +96,14 @@ export async function saveSettings(settings: BusinessSettings): Promise<void> {
     {
       user_id: user.id,
       issuer_name: settings.issuerName,
+      issuer_representative_name: settings.issuerRepresentativeName,
       issuer_department: settings.issuerDepartment,
       issuer_email: settings.issuerEmail,
       issuer_phone: settings.issuerPhone,
       issuer_postal_code: settings.issuerPostalCode,
       issuer_address: settings.issuerAddress,
       issuer_invoice_number: settings.issuerInvoiceNumber,
+      issuer_logo_url: settings.issuerLogoUrl,
       bank_name: settings.bankName,
       bank_branch: settings.bankBranch,
       bank_account_type: settings.bankAccountType,
@@ -101,6 +113,8 @@ export async function saveSettings(settings: BusinessSettings): Promise<void> {
       estimate_valid_days: settings.estimateValidDays,
       invoice_due_days: settings.invoiceDueDays,
       document_note: settings.documentNote,
+      estimate_note: settings.estimateNote,
+      invoice_note: settings.invoiceNote,
       neglected_check_days: settings.neglectedCheckDays,
       neglected_action_days: settings.neglectedActionDays,
       profit_rate_threshold: settings.profitRateThreshold,
