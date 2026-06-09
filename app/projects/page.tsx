@@ -147,7 +147,7 @@ export default function ProjectsPage() {
                 <ProjectCard
                   key={project.id}
                   project={project}
-                  onClick={() => {}}
+                  onClick={() => router.push(`/projects/${project.id}`)}
                 />
               ))}
             </div>

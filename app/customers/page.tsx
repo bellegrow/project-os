@@ -104,8 +104,8 @@ export default function CustomersPage() {
               {filtered.map((customer) => (
                 <button
                   key={customer.id}
-                  onClick={() => !isDemo && router.push(`/customers/${customer.id}`)}
-                  className={`w-full bg-white border border-gray-200 rounded-xl p-4 text-left hover:border-gray-300 hover:shadow-sm transition-all ${isDemo ? 'cursor-default' : 'cursor-pointer'}`}
+                  onClick={() => router.push(`/customers/${customer.id}`)}
+                  className="w-full bg-white border border-gray-200 rounded-xl p-4 text-left hover:border-gray-300 hover:shadow-sm transition-all cursor-pointer"
                 >
                   <div className="flex items-center justify-between gap-3">
                     <div className="min-w-0 flex-1">
@@ -134,7 +134,7 @@ export default function CustomersPage() {
                         </p>
                         <p className="text-xs text-gray-400">案件</p>
                       </div>
-                      {!isDemo && <ChevronRight className="w-4 h-4 text-gray-300" />}
+                      <ChevronRight className="w-4 h-4 text-gray-300" />
                     </div>
                   </div>
                 </button>

@@ -73,12 +73,14 @@ export default function CustomerDetailPage() {
     }
   }, [customerId, router])
 
+  const isDemoCustomer = customerId.startsWith('demo-')
+
   useEffect(() => {
     if (isCloud === null) return
-    if (!isCloud) { router.push('/projects'); return }
+    if (!isCloud && !isDemoCustomer) { router.push('/projects'); return }
     setMounted(true)
     load()
-  }, [isCloud, load, router])
+  }, [isCloud, load, router, isDemoCustomer])
 
   const handleDelete = async () => {
     if (!window.confirm('この顧客を削除しますか？\n紐づく担当者情報も削除されます。')) return
@@ -155,27 +157,37 @@ export default function CustomerDetailPage() {
                 <p className="text-xs text-gray-500 mt-0.5 pl-5">{customer.industry}</p>
               )}
             </div>
-            <div className="flex items-center gap-0.5 shrink-0">
-              <button
-                onClick={() => setShowEditModal(true)}
-                className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors"
-                title="顧客を編集"
-              >
-                <Pencil className="w-3.5 h-3.5" />
-              </button>
-              <button
-                onClick={handleDelete}
-                className="p-1.5 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-400 transition-colors"
-                title="顧客を削除"
-              >
-                <Trash2 className="w-3.5 h-3.5" />
-              </button>
-            </div>
+            {!isDemoCustomer && (
+              <div className="flex items-center gap-0.5 shrink-0">
+                <button
+                  onClick={() => setShowEditModal(true)}
+                  className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors"
+                  title="顧客を編集"
+                >
+                  <Pencil className="w-3.5 h-3.5" />
+                </button>
+                <button
+                  onClick={handleDelete}
+                  className="p-1.5 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-400 transition-colors"
+                  title="顧客を削除"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </header>
 
       <main className="max-w-2xl mx-auto px-4 py-6 space-y-6">
+
+        {/* デモバナー */}
+        {isDemoCustomer && (
+          <div className="bg-blue-50 border border-blue-200 rounded-xl px-4 py-2.5 flex items-center gap-2">
+            <span className="text-xs text-blue-700 font-medium">デモデータを表示中</span>
+            <span className="text-xs text-blue-500">— クラウドモードで編集・管理できます</span>
+          </div>
+        )}
 
         {/* 基本情報 */}
         <div className="bg-white border border-gray-200 rounded-xl p-4 space-y-2">
@@ -226,13 +238,15 @@ export default function CustomerDetailPage() {
         <section>
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-sm font-semibold text-gray-700">担当者</h2>
-            <button
-              onClick={() => setShowAddContact(true)}
-              className="flex items-center gap-1 text-xs font-medium text-blue-600 hover:text-blue-700 transition-colors"
-            >
-              <Plus className="w-3.5 h-3.5" />
-              追加
-            </button>
+            {!isDemoCustomer && (
+              <button
+                onClick={() => setShowAddContact(true)}
+                className="flex items-center gap-1 text-xs font-medium text-blue-600 hover:text-blue-700 transition-colors"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                追加
+              </button>
+            )}
           </div>
 
           {showAddContact && (
@@ -528,13 +542,15 @@ export default function CustomerDetailPage() {
         <section>
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-sm font-semibold text-gray-700">活動履歴</h2>
-            <button
-              onClick={() => setShowActivityModal(true)}
-              className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-700"
-            >
-              <Plus className="w-3.5 h-3.5" />
-              活動を記録
-            </button>
+            {!isDemoCustomer && (
+              <button
+                onClick={() => setShowActivityModal(true)}
+                className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-700"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                活動を記録
+              </button>
+            )}
           </div>
           <div className="bg-white border border-gray-200 rounded-xl p-4">
             <ActivityFeed customerId={customerId} refreshKey={activityRefreshKey} />

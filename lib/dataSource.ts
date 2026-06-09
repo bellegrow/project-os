@@ -11,6 +11,12 @@
  *   参照: lib/auth/getCurrentOrganization.ts
  */
 import { Project, Hearing, ProjectStatus, Customer, Contact, Estimate, EstimateStatus, EstimateInput, Invoice, InvoiceStatus, InvoiceInput, PaymentInput, Contract, ContractStatus, ContractInput, Activity, ActivityInput, Task, TaskInput, TaskUpdateInput, ProjectCost, ProjectCostInput, ProjectCostUpdateInput, ProjectFile, ProjectFileInput, ProjectFileUpdateInput, FileCategory } from './types'
+import {
+  demoProjectMap, demoCustomers, demoHearings, demoHearingsByProject,
+  demoEstimatesByProject, demoInvoicesByProject, demoContractsByProject,
+  demoTasksByProject, demoCostsByProject, demoFilesByProject,
+  demoContactsByCustomer, demoProjects, demoTasks, demoProjectCosts, demoProjectFiles,
+} from './demoData'
 import * as storage from './storage'
 import * as sbProjects from './supabase/projects'
 import * as sbHearings from './supabase/hearings'
@@ -57,7 +63,7 @@ export async function getProjects(
 
 export async function getProject(id: string): Promise<Project | undefined> {
   if (await isCloudMode()) return sbProjects.getProject(id)
-  return storage.getProject(id)
+  return storage.getProject(id) ?? demoProjectMap.get(id)
 }
 
 export async function createProject(
@@ -92,12 +98,18 @@ export async function deleteProject(id: string): Promise<void> {
 
 export async function getHearings(projectId: string): Promise<Hearing[]> {
   if (await isCloudMode()) return sbHearings.getHearings(projectId)
-  return storage.getHearings(projectId)
+  const real = storage.getHearings(projectId)
+  if (real.length > 0 || !projectId.startsWith('demo-')) return real
+  return demoHearingsByProject.get(projectId) ?? []
 }
 
 export async function getHearingsByProjectIds(projectIds: string[]): Promise<Hearing[]> {
   if (await isCloudMode()) return sbHearings.getHearingsByProjectIds(projectIds)
-  return storage.getHearingsByProjectIds(projectIds)
+  const real = storage.getHearingsByProjectIds(projectIds)
+  const demoIds = projectIds.filter(id => id.startsWith('demo-'))
+  if (demoIds.length === 0) return real
+  const demoResults = demoHearings.filter(h => demoIds.includes(h.projectId))
+  return [...real, ...demoResults]
 }
 
 export async function getAllHearings(): Promise<Hearing[]> {
@@ -134,7 +146,7 @@ export async function getCustomers(
 
 export async function getCustomer(id: string): Promise<Customer | undefined> {
   if (await isCloudMode()) return sbCustomers.getCustomer(id)
-  return undefined
+  return demoCustomers.find(c => c.id === id)
 }
 
 export async function createCustomer(
@@ -158,14 +170,14 @@ export async function deleteCustomer(id: string): Promise<void> {
 
 export async function getProjectsByCustomer(customerId: string): Promise<Project[]> {
   if (await isCloudMode()) return sbProjects.getProjectsByCustomer(customerId)
-  return []
+  return demoProjects.filter(p => p.customerId === customerId)
 }
 
 // ─── Contacts（クラウドモード専用） ───────────────────────────
 
 export async function getContacts(customerId: string): Promise<Contact[]> {
   if (await isCloudMode()) return sbContacts.getContacts(customerId)
-  return []
+  return demoContactsByCustomer.get(customerId) ?? []
 }
 
 export async function createContact(
@@ -199,7 +211,9 @@ export async function getAllEstimates(
 
 export async function getEstimates(projectId: string): Promise<Estimate[]> {
   if (await isCloudMode()) return sbEstimates.getEstimates(projectId)
-  return storage.getEstimates(projectId)
+  const real = storage.getEstimates(projectId)
+  if (real.length > 0 || !projectId.startsWith('demo-')) return real
+  return demoEstimatesByProject.get(projectId) ?? []
 }
 
 export async function getEstimate(id: string): Promise<Estimate | undefined> {
@@ -234,7 +248,9 @@ export async function deleteEstimate(id: string): Promise<void> {
 
 export async function getInvoices(projectId: string): Promise<Invoice[]> {
   if (await isCloudMode()) return sbInvoices.getInvoices(projectId)
-  return storage.getInvoices(projectId)
+  const real = storage.getInvoices(projectId)
+  if (real.length > 0 || !projectId.startsWith('demo-')) return real
+  return demoInvoicesByProject.get(projectId) ?? []
 }
 
 // TODO: v1.4+ — _organizationId を sbInvoices.getAllInvoices() に渡してフィルタを適用
@@ -295,7 +311,9 @@ export async function getAllContracts(
 
 export async function getContracts(projectId: string): Promise<Contract[]> {
   if (await isCloudMode()) return sbContracts.getContracts(projectId)
-  return storage.getContracts(projectId)
+  const real = storage.getContracts(projectId)
+  if (real.length > 0 || !projectId.startsWith('demo-')) return real
+  return demoContractsByProject.get(projectId) ?? []
 }
 
 export async function getContract(id: string): Promise<Contract | undefined> {
@@ -373,12 +391,16 @@ export async function getAllTasks(
 
 export async function getTasks(projectId: string): Promise<Task[]> {
   if (await isCloudMode()) return sbTasks.getTasks(projectId)
-  return storage.getTasks(projectId)
+  const real = storage.getTasks(projectId)
+  if (real.length > 0 || !projectId.startsWith('demo-')) return real
+  return demoTasksByProject.get(projectId) ?? []
 }
 
 export async function getTasksByCustomer(customerId: string): Promise<Task[]> {
   if (await isCloudMode()) return sbTasks.getTasksByCustomer(customerId)
-  return storage.getTasksByCustomer(customerId)
+  const real = storage.getTasksByCustomer(customerId)
+  if (real.length > 0 || !customerId.startsWith('demo-')) return real
+  return demoTasks.filter(t => t.customerId === customerId)
 }
 
 export async function getTodayTasks(): Promise<Task[]> {
@@ -415,12 +437,16 @@ export async function deleteTask(id: string): Promise<void> {
 
 export async function getProjectCosts(projectId: string): Promise<ProjectCost[]> {
   if (await isCloudMode()) return sbProjectCosts.getProjectCosts(projectId)
-  return storage.getProjectCosts(projectId)
+  const real = storage.getProjectCosts(projectId)
+  if (real.length > 0 || !projectId.startsWith('demo-')) return real
+  return demoCostsByProject.get(projectId) ?? []
 }
 
 export async function getProjectCostsByCustomer(customerId: string): Promise<ProjectCost[]> {
   if (await isCloudMode()) return sbProjectCosts.getProjectCostsByCustomer(customerId)
-  return storage.getProjectCostsByCustomer(customerId)
+  const real = storage.getProjectCostsByCustomer(customerId)
+  if (real.length > 0 || !customerId.startsWith('demo-')) return real
+  return demoProjectCosts.filter(c => c.customerId === customerId)
 }
 
 // TODO: v1.4+ — _organizationId を sbProjectCosts.getAllProjectCosts() に渡してフィルタを適用
@@ -458,12 +484,16 @@ export async function getAllProjectFiles(
 
 export async function getProjectFiles(projectId: string): Promise<ProjectFile[]> {
   if (await isCloudMode()) return sbProjectFiles.getProjectFiles(projectId)
-  return storage.getProjectFiles(projectId)
+  const real = storage.getProjectFiles(projectId)
+  if (real.length > 0 || !projectId.startsWith('demo-')) return real
+  return demoFilesByProject.get(projectId) ?? []
 }
 
 export async function getProjectFilesByCustomer(customerId: string): Promise<ProjectFile[]> {
   if (await isCloudMode()) return sbProjectFiles.getProjectFilesByCustomer(customerId)
-  return storage.getProjectFilesByCustomer(customerId)
+  const real = storage.getProjectFilesByCustomer(customerId)
+  if (real.length > 0 || !customerId.startsWith('demo-')) return real
+  return demoProjectFiles.filter(f => f.customerId === customerId)
 }
 
 export async function createProjectFile(input: ProjectFileInput): Promise<ProjectFile | undefined> {

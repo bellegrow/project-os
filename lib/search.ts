@@ -1,5 +1,6 @@
 import { SearchResult, SearchResultType } from './types'
 import { formatEstimateNumber, formatInvoiceNumber, formatContractNumber, formatCurrency } from './utils'
+import { searchDemoData } from './demoData'
 import {
   getProjects,
   getCustomers,
@@ -271,6 +272,12 @@ export async function searchAll(query: string): Promise<SearchResult[]> {
         customerId: f.customerId,
       })
     }
+  }
+
+  // Demo fallback: if no real data exists, search demo data
+  const isNoRealData = projects.length === 0 && customers.length === 0 && hearings.length === 0
+  if (isNoRealData) {
+    results.push(...searchDemoData(query))
   }
 
   results.sort((a, b) => {
