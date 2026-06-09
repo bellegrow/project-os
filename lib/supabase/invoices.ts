@@ -101,6 +101,7 @@ export async function getInvoices(projectId: string): Promise<Invoice[]> {
 export async function getAllInvoices(): Promise<Invoice[]> {
   if (!isConfigured()) return []
   const supabase = createClient()
+  // TODO: v1.4+ — .eq('organization_id', organizationId) でテナント分離フィルタを追加
   const { data, error } = await supabase
     .from('invoices')
     .select('*, invoice_items(*)')

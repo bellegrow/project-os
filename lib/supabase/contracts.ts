@@ -48,6 +48,7 @@ function fromRow(row: ContractRow): Contract {
 export async function getAllContracts(): Promise<Contract[]> {
   if (!isConfigured()) return []
   const supabase = createClient()
+  // TODO: v1.4+ — .eq('organization_id', organizationId) でテナント分離フィルタを追加
   const { data, error } = await supabase
     .from('contracts')
     .select('*')

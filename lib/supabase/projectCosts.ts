@@ -64,6 +64,7 @@ export async function getProjectCostsByCustomer(customerId: string): Promise<Pro
 export async function getAllProjectCosts(): Promise<ProjectCost[]> {
   if (!isConfigured()) return []
   const supabase = createClient()
+  // TODO: v1.4+ — .eq('organization_id', organizationId) でテナント分離フィルタを追加
   const { data, error } = await supabase
     .from('project_costs')
     .select('*')

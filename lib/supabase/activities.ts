@@ -35,6 +35,7 @@ function fromRow(row: ActivityRow): Activity {
 export async function getAllActivities(): Promise<Activity[]> {
   if (!isConfigured()) return []
   const supabase = createClient()
+  // TODO: v1.4+ — .eq('organization_id', organizationId) でテナント分離フィルタを追加
   const { data, error } = await supabase
     .from('activities')
     .select('*')

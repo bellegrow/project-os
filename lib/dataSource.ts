@@ -3,6 +3,12 @@
  * - Supabase設定済み かつ セッションあり → Supabase CRUD
  * - それ以外 → localStorage（v1互換）
  * 顧客・担当者はクラウドモード専用（localStorageフォールバックなし）
+ *
+ * TODO: v1.4+ — マルチテナント対応
+ *   getCurrentOrganizationId() で組織IDを取得し、
+ *   各 getAll* / getX 関数に organizationId フィルタを追加する。
+ *   Supabase 側は organization_id カラム + RLS ポリシーで分離を保証する。
+ *   参照: lib/auth/getCurrentOrganization.ts
  */
 import { Project, Hearing, ProjectStatus, Customer, Contact, Estimate, EstimateStatus, EstimateInput, Invoice, InvoiceStatus, InvoiceInput, PaymentInput, Contract, ContractStatus, ContractInput, Activity, ActivityInput, Task, TaskInput, TaskUpdateInput, ProjectCost, ProjectCostInput, ProjectCostUpdateInput, ProjectFile, ProjectFileInput, ProjectFileUpdateInput, FileCategory } from './types'
 import * as storage from './storage'
@@ -41,7 +47,10 @@ async function isCloudMode(): Promise<boolean> {
 
 // ─── Projects ────────────────────────────────────────────────
 
-export async function getProjects(): Promise<Project[]> {
+// TODO: v1.4+ — _organizationId を sbProjects.getProjects() に渡してフィルタを適用
+export async function getProjects(
+  _organizationId?: string
+): Promise<Project[]> {
   if (await isCloudMode()) return sbProjects.getProjects()
   return storage.getProjects()
 }
@@ -115,7 +124,10 @@ export async function deleteHearing(id: string): Promise<void> {
 
 // ─── Customers（クラウドモード専用） ──────────────────────────
 
-export async function getCustomers(): Promise<Customer[]> {
+// TODO: v1.4+ — _organizationId を sbCustomers.getCustomers() に渡してフィルタを適用
+export async function getCustomers(
+  _organizationId?: string
+): Promise<Customer[]> {
   if (await isCloudMode()) return sbCustomers.getCustomers()
   return []
 }
@@ -177,7 +189,10 @@ export async function deleteContact(id: string): Promise<void> {
 
 // ─── Estimates ───────────────────────────────────────────────
 
-export async function getAllEstimates(): Promise<Estimate[]> {
+// TODO: v1.4+ — _organizationId を sbEstimates.getAllEstimates() に渡してフィルタを適用
+export async function getAllEstimates(
+  _organizationId?: string
+): Promise<Estimate[]> {
   if (await isCloudMode()) return sbEstimates.getAllEstimates()
   return storage.getAllEstimates()
 }
@@ -222,7 +237,10 @@ export async function getInvoices(projectId: string): Promise<Invoice[]> {
   return storage.getInvoices(projectId)
 }
 
-export async function getAllInvoices(): Promise<Invoice[]> {
+// TODO: v1.4+ — _organizationId を sbInvoices.getAllInvoices() に渡してフィルタを適用
+export async function getAllInvoices(
+  _organizationId?: string
+): Promise<Invoice[]> {
   if (await isCloudMode()) return sbInvoices.getAllInvoices()
   return storage.getAllInvoices()
 }
@@ -267,7 +285,10 @@ export async function deleteInvoice(id: string): Promise<void> {
 
 // ─── Contracts ───────────────────────────────────────────────
 
-export async function getAllContracts(): Promise<Contract[]> {
+// TODO: v1.4+ — _organizationId を sbContracts.getAllContracts() に渡してフィルタを適用
+export async function getAllContracts(
+  _organizationId?: string
+): Promise<Contract[]> {
   if (await isCloudMode()) return sbContracts.getAllContracts()
   return storage.getAllContracts()
 }
@@ -307,7 +328,10 @@ export async function deleteContract(id: string): Promise<void> {
 
 // ─── Activities ──────────────────────────────────────────────
 
-export async function getAllActivities(): Promise<Activity[]> {
+// TODO: v1.4+ — _organizationId を sbActivities.getAllActivities() に渡してフィルタを適用
+export async function getAllActivities(
+  _organizationId?: string
+): Promise<Activity[]> {
   if (await isCloudMode()) return sbActivities.getAllActivities()
   return storage.getAllActivities()
 }
@@ -339,7 +363,10 @@ export async function deleteActivity(id: string): Promise<void> {
 
 // ─── Tasks ───────────────────────────────────────────────────
 
-export async function getAllTasks(): Promise<Task[]> {
+// TODO: v1.4+ — _organizationId を sbTasks.getAllTasks() に渡してフィルタを適用
+export async function getAllTasks(
+  _organizationId?: string
+): Promise<Task[]> {
   if (await isCloudMode()) return sbTasks.getAllTasks()
   return storage.getAllTasks()
 }
@@ -396,7 +423,10 @@ export async function getProjectCostsByCustomer(customerId: string): Promise<Pro
   return storage.getProjectCostsByCustomer(customerId)
 }
 
-export async function getAllProjectCosts(): Promise<ProjectCost[]> {
+// TODO: v1.4+ — _organizationId を sbProjectCosts.getAllProjectCosts() に渡してフィルタを適用
+export async function getAllProjectCosts(
+  _organizationId?: string
+): Promise<ProjectCost[]> {
   if (await isCloudMode()) return sbProjectCosts.getAllProjectCosts()
   return storage.getAllProjectCosts()
 }
@@ -418,7 +448,10 @@ export async function deleteProjectCost(id: string): Promise<void> {
 
 // ─── Project Files ───────────────────────────────────────────
 
-export async function getAllProjectFiles(): Promise<ProjectFile[]> {
+// TODO: v1.4+ — _organizationId を sbProjectFiles.getAllProjectFiles() に渡してフィルタを適用
+export async function getAllProjectFiles(
+  _organizationId?: string
+): Promise<ProjectFile[]> {
   if (await isCloudMode()) return sbProjectFiles.getAllProjectFiles()
   return storage.getAllProjectFiles()
 }

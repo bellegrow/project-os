@@ -34,6 +34,7 @@ function fromRow(row: CustomerRow): Customer {
 export async function getCustomers(): Promise<Customer[]> {
   if (!isConfigured()) return []
   const supabase = createClient()
+  // TODO: v1.4+ — .eq('organization_id', organizationId) でテナント分離フィルタを追加
   const { data, error } = await supabase
     .from('customers')
     .select('*')
