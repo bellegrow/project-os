@@ -42,13 +42,17 @@ function getActiveKey(pathname: string): NavKey | null {
   return null
 }
 
-function getMobileTab(pathname: string): 'dashboard' | 'projects' | 'tasks' | 'customers' | 'settings' | 'search' | undefined {
+function getMobileTab(pathname: string): 'dashboard' | 'projects' | 'tasks' | 'customers' | 'more' | undefined {
   if (pathname === '/dashboard')         return 'dashboard'
   if (pathname.startsWith('/projects'))  return 'projects'
   if (pathname === '/tasks')             return 'tasks'
   if (pathname.startsWith('/customers')) return 'customers'
-  if (pathname === '/settings')          return 'settings'
-  if (pathname === '/search')            return 'search'
+  if (pathname === '/meetings')          return 'more'
+  if (pathname === '/billing')           return 'more'
+  if (pathname === '/contracts')         return 'more'
+  if (pathname === '/finance')           return 'more'
+  if (pathname === '/files')             return 'more'
+  if (pathname === '/settings')          return 'more'
   return undefined
 }
 
