@@ -13,7 +13,7 @@
 import { Project, Hearing, ProjectStatus, Customer, Contact, Estimate, EstimateStatus, EstimateInput, Invoice, InvoiceStatus, InvoiceInput, PaymentInput, Contract, ContractStatus, ContractInput, Activity, ActivityInput, Task, TaskInput, TaskUpdateInput, ProjectCost, ProjectCostInput, ProjectCostUpdateInput, ProjectFile, ProjectFileInput, ProjectFileUpdateInput, FileCategory } from './types'
 import {
   demoProjectMap, demoCustomers, demoHearings, demoHearingsByProject,
-  demoEstimatesByProject, demoInvoicesByProject, demoContractsByProject,
+  demoEstimates, demoEstimatesByProject, demoInvoicesByProject, demoContractsByProject,
   demoTasksByProject, demoCostsByProject, demoFilesByProject,
   demoContactsByCustomer, demoProjects, demoTasks, demoProjectCosts, demoProjectFiles,
   demoActivitiesByProject,
@@ -232,7 +232,17 @@ export async function updateEstimate(
   input: Partial<EstimateInput>
 ): Promise<Estimate | undefined> {
   if (await isCloudMode()) return sbEstimates.updateEstimate(id, input)
-  return storage.updateEstimate(id, input)
+  const result = storage.updateEstimate(id, input)
+  if (result) return result
+  // デモデータのエントリはlocalStorageにないため、先にシードしてから更新する
+  if (id.startsWith('demo-')) {
+    const demo = demoEstimates.find(e => e.id === id)
+    if (demo) {
+      storage.seedEstimate(demo)
+      return storage.updateEstimate(id, input)
+    }
+  }
+  return undefined
 }
 
 export async function updateEstimateStatus(id: string, status: EstimateStatus): Promise<void> {

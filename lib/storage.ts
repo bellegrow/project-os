@@ -210,6 +210,12 @@ export function createEstimate(input: EstimateInput): Estimate {
   return estimate
 }
 
+export function seedEstimate(estimate: Estimate): void {
+  const all = getAll<Estimate>(KEYS.ESTIMATES)
+  if (all.find((e) => e.id === estimate.id)) return
+  saveAll(KEYS.ESTIMATES, [...all, estimate])
+}
+
 export function updateEstimate(id: string, input: Partial<EstimateInput>): Estimate | undefined {
   const now = new Date().toISOString()
   const all = getAll<Estimate>(KEYS.ESTIMATES)
