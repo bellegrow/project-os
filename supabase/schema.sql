@@ -829,3 +829,229 @@ create policy "invoice_items: via invoices org"
   with check (
     exists (select 1 from invoices where invoices.id = invoice_items.invoice_id)
   );
+
+-- ════════════════════════════════════════════
+-- v1.4.4: organization_id NULL 行移行 & NOT NULL 制約化
+--
+-- 目的:
+--   v1.4.3 で RLS を有効化すると organization_id IS NULL の既存行が
+--   アクセス不可になる。本番適用前に NULL 行を対象 org に移行し、
+--   その後 NOT NULL 制約を付与して RLS の完全適用を完了させる。
+--
+-- ⚠️  実行前に必ずバックアップを取ること（pg_dump 等）
+-- ⚠️  <TARGET_ORG_ID> を実在する organizations.id に置き換えること
+-- ⚠️  RLS 本番有効化（v1.4.3 SQL 実行）より前に本SQLを実行すること
+-- ⚠️  STEP 3 の NOT NULL 付与は NULL 件数が全テーブル 0 であることを確認後に実行
+-- ════════════════════════════════════════════
+
+-- ────────────────────────────────────────────
+-- STEP 1: NULL 件数の確認
+--   9 テーブル分を一度に確認する。
+--   実行後、count が全行 0 であれば移行不要（STEP 2 はスキップ可）。
+-- ────────────────────────────────────────────
+select 'customers'     as table_name, count(*) as null_count from customers     where organization_id is null
+union all
+select 'projects',                    count(*)               from projects      where organization_id is null
+union all
+select 'tasks',                       count(*)               from tasks         where organization_id is null
+union all
+select 'activities',                  count(*)               from activities    where organization_id is null
+union all
+select 'estimates',                   count(*)               from estimates     where organization_id is null
+union all
+select 'invoices',                    count(*)               from invoices      where organization_id is null
+union all
+select 'contracts',                   count(*)               from contracts     where organization_id is null
+union all
+select 'project_costs',               count(*)               from project_costs where organization_id is null
+union all
+select 'project_files',               count(*)               from project_files where organization_id is null
+order by table_name;
+
+-- ────────────────────────────────────────────
+-- STEP 2: NULL 行を対象 org に移行
+--
+--   <TARGET_ORG_ID> を実際の organizations.id UUID に置き換えてください。
+--   確認方法: SELECT id, name FROM organizations;
+--
+--   テナントが1組織のみの場合はその org の UUID を使用してください。
+--   複数組織がある場合は user_id → organization_members でマッピングして
+--   個別に UPDATE することを検討してください。
+-- ────────────────────────────────────────────
+
+-- ⚠️ 実行前に <TARGET_ORG_ID> を置き換えること
+-- 対象 org の確認: SELECT id, name FROM organizations;
+
+update customers
+  set organization_id = '<TARGET_ORG_ID>'
+  where organization_id is null;
+
+update projects
+  set organization_id = '<TARGET_ORG_ID>'
+  where organization_id is null;
+
+update tasks
+  set organization_id = '<TARGET_ORG_ID>'
+  where organization_id is null;
+
+update activities
+  set organization_id = '<TARGET_ORG_ID>'
+  where organization_id is null;
+
+update estimates
+  set organization_id = '<TARGET_ORG_ID>'
+  where organization_id is null;
+
+update invoices
+  set organization_id = '<TARGET_ORG_ID>'
+  where organization_id is null;
+
+update contracts
+  set organization_id = '<TARGET_ORG_ID>'
+  where organization_id is null;
+
+update project_costs
+  set organization_id = '<TARGET_ORG_ID>'
+  where organization_id is null;
+
+update project_files
+  set organization_id = '<TARGET_ORG_ID>'
+  where organization_id is null;
+
+-- ────────────────────────────────────────────
+-- STEP 2 後確認: 移行結果を再確認
+--   全テーブルの null_count が 0 になっていること。
+-- ────────────────────────────────────────────
+select 'customers'     as table_name, count(*) as null_count from customers     where organization_id is null
+union all
+select 'projects',                    count(*)               from projects      where organization_id is null
+union all
+select 'tasks',                       count(*)               from tasks         where organization_id is null
+union all
+select 'activities',                  count(*)               from activities    where organization_id is null
+union all
+select 'estimates',                   count(*)               from estimates     where organization_id is null
+union all
+select 'invoices',                    count(*)               from invoices      where organization_id is null
+union all
+select 'contracts',                   count(*)               from contracts     where organization_id is null
+union all
+select 'project_costs',               count(*)               from project_costs where organization_id is null
+union all
+select 'project_files',               count(*)               from project_files where organization_id is null
+order by table_name;
+
+-- ────────────────────────────────────────────
+-- STEP 3: NOT NULL 制約付与
+--
+--   ⚠️  STEP 2 後確認で全行 null_count = 0 を確認してから実行すること。
+--   NULL 行が残った状態で実行するとエラーになる（データは変更されない）。
+-- ────────────────────────────────────────────
+alter table customers     alter column organization_id set not null;
+alter table projects      alter column organization_id set not null;
+alter table tasks         alter column organization_id set not null;
+alter table activities    alter column organization_id set not null;
+alter table estimates     alter column organization_id set not null;
+alter table invoices      alter column organization_id set not null;
+alter table contracts     alter column organization_id set not null;
+alter table project_costs alter column organization_id set not null;
+alter table project_files alter column organization_id set not null;
+
+-- ────────────────────────────────────────────
+-- STEP 4: FK / Index 存在確認
+--
+--   v1.4.1 で追加済みの FK とインデックスが存在することを確認する。
+--   存在しない場合は STEP 4b の補完 SQL を実行すること。
+-- ────────────────────────────────────────────
+select
+  t.relname  as table_name,
+  i.relname  as index_name,
+  a.attname  as column_name
+from
+  pg_class     t
+  join pg_index    ix on t.oid  = ix.indrelid
+  join pg_class    i  on i.oid  = ix.indexrelid
+  join pg_attribute a  on a.attrelid = t.oid and a.attnum = any(ix.indkey)
+where
+  t.relname in (
+    'customers','projects','tasks','activities','estimates',
+    'invoices','contracts','project_costs','project_files'
+  )
+  and a.attname = 'organization_id'
+  and t.relkind = 'r'
+order by t.relname;
+
+-- ────────────────────────────────────────────
+-- STEP 4b: インデックス補完（存在しない場合のみ実行）
+--   v1.4.1 で作成済みであれば不要。
+-- ────────────────────────────────────────────
+create index if not exists customers_organization_id_idx     on customers     (organization_id);
+create index if not exists projects_organization_id_idx      on projects      (organization_id);
+create index if not exists tasks_organization_id_idx         on tasks         (organization_id);
+create index if not exists activities_organization_id_idx    on activities    (organization_id);
+create index if not exists estimates_organization_id_idx     on estimates     (organization_id);
+create index if not exists invoices_organization_id_idx      on invoices      (organization_id);
+create index if not exists contracts_organization_id_idx     on contracts     (organization_id);
+create index if not exists project_costs_organization_id_idx on project_costs (organization_id);
+create index if not exists project_files_organization_id_idx on project_files (organization_id);
+
+-- ────────────────────────────────────────────
+-- STEP 5: 最終確認
+--   移行・NOT NULL 付与・RLS 有効化後の動作確認クエリ。
+--   Supabase の anon / authenticated ロールで正しくフィルタされていること。
+-- ────────────────────────────────────────────
+
+-- ① NULL 行が残っていないこと（全行 0）
+select 'customers'     as table_name, count(*) as null_count from customers     where organization_id is null
+union all
+select 'projects',                    count(*)               from projects      where organization_id is null
+union all
+select 'tasks',                       count(*)               from tasks         where organization_id is null
+union all
+select 'activities',                  count(*)               from activities    where organization_id is null
+union all
+select 'estimates',                   count(*)               from estimates     where organization_id is null
+union all
+select 'invoices',                    count(*)               from invoices      where organization_id is null
+union all
+select 'contracts',                   count(*)               from contracts     where organization_id is null
+union all
+select 'project_costs',               count(*)               from project_costs where organization_id is null
+union all
+select 'project_files',               count(*)               from project_files where organization_id is null
+order by table_name;
+
+-- ② 各テーブルの総件数と organization_id 別件数（データ分布確認）
+select 'customers'     as table_name, organization_id, count(*) from customers     group by organization_id
+union all
+select 'projects',                    organization_id, count(*) from projects      group by organization_id
+union all
+select 'tasks',                       organization_id, count(*) from tasks         group by organization_id
+union all
+select 'activities',                  organization_id, count(*) from activities    group by organization_id
+union all
+select 'estimates',                   organization_id, count(*) from estimates     group by organization_id
+union all
+select 'invoices',                    organization_id, count(*) from invoices      group by organization_id
+union all
+select 'contracts',                   organization_id, count(*) from contracts     group by organization_id
+union all
+select 'project_costs',               organization_id, count(*) from project_costs group by organization_id
+union all
+select 'project_files',               organization_id, count(*) from project_files group by organization_id
+order by table_name, organization_id;
+
+-- ③ RLS ポリシーの一覧確認（v1.4.3 で追加したポリシーが存在すること）
+select
+  schemaname,
+  tablename,
+  policyname,
+  cmd,
+  qual
+from pg_policies
+where tablename in (
+  'customers','projects','tasks','activities','estimates',
+  'invoices','contracts','project_costs','project_files',
+  'organizations','organization_members'
+)
+order by tablename, policyname;
