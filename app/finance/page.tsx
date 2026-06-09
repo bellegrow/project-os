@@ -31,6 +31,12 @@ export default function FinancePage() {
     <AppShell>
       <main className="max-w-7xl mx-auto px-4 py-6 lg:px-8 space-y-6">
 
+        {/* デモバナー */}
+        <div className="bg-blue-50 border border-blue-200 rounded-xl px-4 py-2.5 flex items-center gap-2">
+          <span className="text-xs text-blue-700 font-medium">デモデータを表示中</span>
+          <span className="text-xs text-blue-500">— 案件・タスクを登録すると実データに切り替わります</span>
+        </div>
+
         {/* ページタイトル */}
         <div>
           <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
