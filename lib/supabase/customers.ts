@@ -37,12 +37,14 @@ function fromRow(row: CustomerRow): Customer {
 export async function getCustomers(): Promise<Customer[]> {
   if (!isConfigured()) return []
   const supabase = createClient()
-  // TODO: v1.4.2 — .eq('organization_id', organizationId) でテナント分離フィルタを追加
+  const organizationId = await getCurrentOrganizationId()
   const { data, error } = await supabase
     .from('customers')
     .select('*')
+    .or(`organization_id.eq.${organizationId},organization_id.is.null`)
     .order('updated_at', { ascending: false })
   if (error || !data) return []
+  if (process.env.NODE_ENV === 'development') console.log(`[v1.4.2] getCustomers org=${organizationId} count=${data.length}`)
   return (data as CustomerRow[]).map(fromRow)
 }
 

@@ -104,12 +104,14 @@ export async function getInvoices(projectId: string): Promise<Invoice[]> {
 export async function getAllInvoices(): Promise<Invoice[]> {
   if (!isConfigured()) return []
   const supabase = createClient()
-  // TODO: v1.4+ — .eq('organization_id', organizationId) でテナント分離フィルタを追加
+  const organizationId = await getCurrentOrganizationId()
   const { data, error } = await supabase
     .from('invoices')
     .select('*, invoice_items(*)')
+    .or(`organization_id.eq.${organizationId},organization_id.is.null`)
     .order('created_at', { ascending: false })
   if (error || !data) return []
+  if (process.env.NODE_ENV === 'development') console.log(`[v1.4.2] getAllInvoices org=${organizationId} count=${data.length}`)
   return (data as InvoiceRow[]).map(fromRow)
 }
 

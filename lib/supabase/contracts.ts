@@ -51,12 +51,14 @@ function fromRow(row: ContractRow): Contract {
 export async function getAllContracts(): Promise<Contract[]> {
   if (!isConfigured()) return []
   const supabase = createClient()
-  // TODO: v1.4+ — .eq('organization_id', organizationId) でテナント分離フィルタを追加
+  const organizationId = await getCurrentOrganizationId()
   const { data, error } = await supabase
     .from('contracts')
     .select('*')
+    .or(`organization_id.eq.${organizationId},organization_id.is.null`)
     .order('created_at', { ascending: false })
   if (error || !data) return []
+  if (process.env.NODE_ENV === 'development') console.log(`[v1.4.2] getAllContracts org=${organizationId} count=${data.length}`)
   return (data as ContractRow[]).map(fromRow)
 }
 

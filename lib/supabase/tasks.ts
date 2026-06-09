@@ -45,12 +45,14 @@ function fromRow(row: TaskRow): Task {
 export async function getAllTasks(): Promise<Task[]> {
   if (!isConfigured()) return []
   const supabase = createClient()
-  // TODO: v1.4.2 — .eq('organization_id', organizationId) でテナント分離フィルタを追加
+  const organizationId = await getCurrentOrganizationId()
   const { data, error } = await supabase
     .from('tasks')
     .select('*')
+    .or(`organization_id.eq.${organizationId},organization_id.is.null`)
     .order('created_at', { ascending: false })
   if (error || !data) return []
+  if (process.env.NODE_ENV === 'development') console.log(`[v1.4.2] getAllTasks org=${organizationId} count=${data.length}`)
   return (data as TaskRow[]).map(fromRow)
 }
 

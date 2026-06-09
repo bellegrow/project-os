@@ -30,9 +30,9 @@ function saveAll<T>(key: string, items: T[]): void {
 
 // Projects
 export function getProjects(): Project[] {
-  return getAll<Project>(KEYS.PROJECTS).sort(
-    (a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
-  )
+  return getAll<Project>(KEYS.PROJECTS)
+    .filter(p => !p.organizationId || p.organizationId === 'local')
+    .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
 }
 
 export function getProject(id: string): Project | undefined {
@@ -132,27 +132,27 @@ export function getAllHearings(): Hearing[] {
 }
 
 export function getAllEstimates(): Estimate[] {
-  return getAll<Estimate>(KEYS.ESTIMATES)
+  return getAll<Estimate>(KEYS.ESTIMATES).filter(e => !e.organizationId || e.organizationId === 'local')
 }
 
 export function getAllInvoices(): Invoice[] {
-  return getAll<Invoice>(KEYS.INVOICES)
+  return getAll<Invoice>(KEYS.INVOICES).filter(i => !i.organizationId || i.organizationId === 'local')
 }
 
 export function getAllContracts(): Contract[] {
-  return getAll<Contract>(KEYS.CONTRACTS)
+  return getAll<Contract>(KEYS.CONTRACTS).filter(c => !c.organizationId || c.organizationId === 'local')
 }
 
 export function getAllTasks(): Task[] {
-  return getAll<Task>(KEYS.TASKS)
+  return getAll<Task>(KEYS.TASKS).filter(t => !t.organizationId || t.organizationId === 'local')
 }
 
 export function getAllActivities(): Activity[] {
-  return getAll<Activity>(KEYS.ACTIVITIES)
+  return getAll<Activity>(KEYS.ACTIVITIES).filter(a => !a.organizationId || a.organizationId === 'local')
 }
 
 export function getAllProjectFiles(): ProjectFile[] {
-  return getAll<ProjectFile>(KEYS.PROJECT_FILES)
+  return getAll<ProjectFile>(KEYS.PROJECT_FILES).filter(f => !f.organizationId || f.organizationId === 'local')
 }
 
 // ─── Estimates ───────────────────────────────────────────────
@@ -604,7 +604,7 @@ export function getProjectCostsByCustomer(customerId: string): ProjectCost[] {
 }
 
 export function getAllProjectCosts(): ProjectCost[] {
-  return getAll<ProjectCost>(KEYS.PROJECT_COSTS)
+  return getAll<ProjectCost>(KEYS.PROJECT_COSTS).filter(c => !c.organizationId || c.organizationId === 'local')
 }
 
 export function createProjectCost(input: ProjectCostInput): ProjectCost {

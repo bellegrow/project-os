@@ -82,12 +82,14 @@ function computeTotals(items: EstimateInput['items'], taxRate = 10) {
 export async function getAllEstimates(): Promise<Estimate[]> {
   if (!isConfigured()) return []
   const supabase = createClient()
-  // TODO: v1.4+ — .eq('organization_id', organizationId) でテナント分離フィルタを追加
+  const organizationId = await getCurrentOrganizationId()
   const { data, error } = await supabase
     .from('estimates')
     .select('*, estimate_items(*)')
+    .or(`organization_id.eq.${organizationId},organization_id.is.null`)
     .order('created_at', { ascending: false })
   if (error || !data) return []
+  if (process.env.NODE_ENV === 'development') console.log(`[v1.4.2] getAllEstimates org=${organizationId} count=${data.length}`)
   return (data as EstimateRow[]).map(fromRow)
 }
 

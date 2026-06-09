@@ -39,12 +39,14 @@ function fromRow(row: ProjectRow): Project {
 export async function getProjects(): Promise<Project[]> {
   if (!isConfigured()) return []
   const supabase = createClient()
-  // TODO: v1.4.2 — .eq('organization_id', organizationId) でテナント分離フィルタを追加
+  const organizationId = await getCurrentOrganizationId()
   const { data, error } = await supabase
     .from('projects')
     .select('*')
+    .or(`organization_id.eq.${organizationId},organization_id.is.null`)
     .order('updated_at', { ascending: false })
   if (error || !data) return []
+  if (process.env.NODE_ENV === 'development') console.log(`[v1.4.2] getProjects org=${organizationId} count=${data.length}`)
   return (data as ProjectRow[]).map(fromRow)
 }
 
