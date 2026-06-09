@@ -8,6 +8,7 @@ import { getAllTasks, getProjects, updateTask, deleteTask } from '@/lib/dataSour
 import { formatYMD } from '@/lib/utils'
 import AppShell from '@/components/AppShell'
 import TaskModal from '@/components/TaskModal'
+import { demoTasks, demoProjects } from '@/lib/demoData'
 
 // ── 定数 ────────────────────────────────────────────────────────────────────
 
@@ -168,28 +169,35 @@ export default function TasksPage() {
     })
   }, [])
 
+  const isDemo = mounted && tasks.length === 0
+
+  const sourceTasks    = isDemo ? demoTasks    : tasks
+  const sourceProjects = isDemo ? demoProjects : projects
+
   const projectMap = useMemo(
-    () => new Map(projects.map(p => [p.id, p])),
-    [projects],
+    () => new Map(sourceProjects.map(p => [p.id, p])),
+    [sourceProjects],
   )
 
   const byStatus = useMemo(() => ({
-    todo:        sortTasks(tasks.filter(t => t.status === 'todo'),        today),
-    in_progress: sortTasks(tasks.filter(t => t.status === 'in_progress'), today),
-    done:        sortTasks(tasks.filter(t => t.status === 'done'),        today),
-  }), [tasks, today])
+    todo:        sortTasks(sourceTasks.filter(t => t.status === 'todo'),        today),
+    in_progress: sortTasks(sourceTasks.filter(t => t.status === 'in_progress'), today),
+    done:        sortTasks(sourceTasks.filter(t => t.status === 'done'),        today),
+  }), [sourceTasks, today])
 
   const overdueCount = useMemo(
-    () => tasks.filter(t => t.status !== 'done' && !!t.dueDate && t.dueDate < today).length,
-    [tasks, today],
+    () => sourceTasks.filter(t => t.status !== 'done' && !!t.dueDate && t.dueDate < today).length,
+    [sourceTasks, today],
   )
 
   async function handleStatus(task: Task, next: TaskStatus) {
+    if (isDemo) return
     const updated = await updateTask(task.id, { status: next })
     if (updated) setTasks(prev => prev.map(t => t.id === task.id ? updated : t))
   }
 
   async function handleDelete(task: Task) {
+    if (isDemo) return
     if (!window.confirm(`「${task.title}」を削除しますか？`)) return
     await deleteTask(task.id)
     setTasks(prev => prev.filter(t => t.id !== task.id))
@@ -207,6 +215,14 @@ export default function TasksPage() {
   return (
     <AppShell>
       <main className="max-w-2xl mx-auto px-4 py-6 lg:max-w-7xl lg:px-8">
+
+        {/* デモバナー */}
+        {isDemo && (
+          <div className="bg-blue-50 border border-blue-200 rounded-xl px-4 py-2.5 flex items-center gap-2 mb-4">
+            <span className="text-xs text-blue-700 font-medium">デモデータを表示中</span>
+            <span className="text-xs text-blue-500">— タスクを追加すると実データに切り替わります</span>
+          </div>
+        )}
 
         {/* ページタイトル */}
         <div className="mb-5 flex items-end justify-between">

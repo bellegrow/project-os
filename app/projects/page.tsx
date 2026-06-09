@@ -11,6 +11,7 @@ import ProjectCard from '@/components/ProjectCard'
 import NewProjectModal from '@/components/NewProjectModal'
 import AppShell from '@/components/AppShell'
 import MigrationBanner from '@/components/MigrationBanner'
+import { demoProjects } from '@/lib/demoData'
 
 type StatusFilter = 'アクティブ' | 'すべて' | '商談中' | '提案済' | '受注' | '進行中' | '完了' | '失注'
 type SortOrder = '更新が新しい順' | '最終ヒアリングが古い順' | '放置日数が長い順'
@@ -135,19 +136,22 @@ export default function ProjectsPage() {
           setProjects(ps)
         }} />
         {projects.length === 0 ? (
-          <div className="text-center py-20">
-            <p className="text-3xl mb-4">📁</p>
-            <h2 className="text-base font-semibold text-gray-700 mb-2">案件がまだありません</h2>
-            <p className="text-sm text-gray-500 mb-6 max-w-xs mx-auto">
-              最初の案件を作成して、ヒアリング記録を残しましょう。
-            </p>
-            <button
-              onClick={() => setShowModal(true)}
-              className="bg-blue-600 text-white text-sm font-medium px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
-            >
-              最初の案件を作成する
-            </button>
-          </div>
+          <>
+            {/* デモ通知バナー */}
+            <div className="bg-blue-50 border border-blue-200 rounded-xl px-4 py-2.5 flex items-center gap-2 mb-4">
+              <span className="text-xs text-blue-700 font-medium">デモデータを表示中</span>
+              <span className="text-xs text-blue-500">— 案件を作成すると実データに切り替わります</span>
+            </div>
+            <div className="space-y-3">
+              {demoProjects.map((project) => (
+                <ProjectCard
+                  key={project.id}
+                  project={project}
+                  onClick={() => {}}
+                />
+              ))}
+            </div>
+          </>
         ) : (
           <>
             <div className="relative mb-2">

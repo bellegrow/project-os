@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { AlertTriangle, Clock, ListTodo, TrendingUp } from 'lucide-react'
+import { AlertTriangle, Clock, ListTodo, TrendingUp, Users, Briefcase, Receipt, FileSignature, MessageSquare, FileText } from 'lucide-react'
 import AppShell from '@/components/AppShell'
 import MigrationBanner from '@/components/MigrationBanner'
 import { getProjects, getAllInvoices, getTodayTasks, getOverdueTasks, getAllProjectCosts } from '@/lib/dataSource'
@@ -11,6 +11,7 @@ import { getSettings } from '@/lib/settingsSource'
 import { Project, Invoice, ProjectStatus, Task, ProjectCost } from '@/lib/types'
 import ActivityFeed from '@/components/ActivityFeed'
 import ProjectStatusBadge from '@/components/ProjectStatusBadge'
+import { demoProjects, demoTasks, demoActivities, demoProjectMap, DEMO_KPI, DemoActivity } from '@/lib/demoData'
 
 const STATUS_CLS: Record<ProjectStatus, string> = {
   商談中: 'bg-amber-100 text-amber-700',
@@ -165,6 +166,7 @@ export default function DashboardPage() {
     .map(r => ({ project: r.project, reasons: r.reasons }))
 
   const hasFinancialData = projects.length > 0 || invoices.length > 0
+  const isDemo = projects.length === 0 && invoices.length === 0 && allCosts.length === 0
 
   // ─── UI ───────────────────────────────────────────────────
 
@@ -177,6 +179,9 @@ export default function DashboardPage() {
           setProjects(ps)
           setInvoices(invs)
         }} />
+
+        {/* ── デモモード ──────────────────────────────────── */}
+        {isDemo && <DemoDashboard />}
 
         {/* ── 1. 今日やること ─────────────────────────────── */}
         <section>
@@ -497,5 +502,187 @@ export default function DashboardPage() {
 
       </main>
     </AppShell>
+  )
+}
+
+// ─── DemoDashboard ────────────────────────────────────────────────────────
+
+const DEMO_STATUS_CLS: Record<string, string> = {
+  商談中: 'bg-amber-100 text-amber-700',
+  提案済: 'bg-blue-100 text-blue-700',
+  受注:   'bg-emerald-100 text-emerald-700',
+  進行中: 'bg-violet-100 text-violet-700',
+}
+const DEMO_PRIORITY_CLS: Record<string, string> = {
+  high:   'bg-red-100 text-red-600',
+  medium: 'bg-amber-100 text-amber-700',
+  low:    'bg-gray-100 text-gray-500',
+}
+const DEMO_PRIORITY_LABEL: Record<string, string> = { high: '高', medium: '中', low: '低' }
+
+function ActivityIcon({ label }: { label: string }) {
+  const cls = 'w-3.5 h-3.5'
+  if (label === '請求書発行') return <Receipt className={cls} />
+  if (label === '契約締結')  return <FileSignature className={cls} />
+  if (label === '打ち合わせ実施') return <MessageSquare className={cls} />
+  if (label.includes('見積') || label.includes('提案')) return <FileText className={cls} />
+  return <FileText className={cls} />
+}
+
+function DemoDashboard() {
+  const today = new Date().toISOString().slice(0, 10)
+
+  const overdueTasks = demoTasks.filter(t => t.status !== 'done' && t.dueDate && t.dueDate < today)
+  const todayTasks   = demoTasks.filter(t => t.status !== 'done' && t.dueDate === today)
+  const activeDemoProjects = demoProjects.filter(p => p.status !== '完了' && p.status !== '失注')
+
+  return (
+    <>
+      {/* デモ通知バナー */}
+      <div className="bg-blue-50 border border-blue-200 rounded-xl px-4 py-2.5 flex items-center gap-2">
+        <span className="text-xs text-blue-700 font-medium">デモデータを表示中</span>
+        <span className="text-xs text-blue-500">— 案件・タスクを登録すると実データに切り替わります</span>
+      </div>
+
+      {/* KPI カード */}
+      <section>
+        <div className="grid grid-cols-2 gap-2">
+          <div className="bg-white border border-gray-200 rounded-xl p-4 flex items-center gap-3">
+            <div className="w-9 h-9 rounded-lg bg-purple-50 flex items-center justify-center shrink-0">
+              <Users className="w-4 h-4 text-purple-600" />
+            </div>
+            <div>
+              <p className="text-xs text-gray-500">顧客数</p>
+              <p className="text-xl font-bold text-gray-900 leading-tight">{DEMO_KPI.customerCount}</p>
+            </div>
+          </div>
+          <div className="bg-white border border-gray-200 rounded-xl p-4 flex items-center gap-3">
+            <div className="w-9 h-9 rounded-lg bg-blue-50 flex items-center justify-center shrink-0">
+              <Briefcase className="w-4 h-4 text-blue-600" />
+            </div>
+            <div>
+              <p className="text-xs text-gray-500">案件数</p>
+              <p className="text-xl font-bold text-gray-900 leading-tight">{DEMO_KPI.projectCount}</p>
+              <p className="text-xs text-gray-400">進行中 {DEMO_KPI.activeProjectCount}件</p>
+            </div>
+          </div>
+          <div className="bg-white border border-gray-200 rounded-xl p-4">
+            <p className="text-xs text-gray-500 mb-1">今月売上</p>
+            <p className="text-lg font-bold text-gray-900 leading-tight">{formatCurrency(DEMO_KPI.thisMonthRevenue)}</p>
+          </div>
+          <div className="bg-white border border-gray-200 rounded-xl p-4">
+            <p className="text-xs text-gray-500 mb-1">
+              今月利益
+              <span className="ml-1.5 font-semibold text-emerald-600">{DEMO_KPI.profitRate}%</span>
+            </p>
+            <p className="text-lg font-bold text-emerald-600 leading-tight">{formatCurrency(DEMO_KPI.thisMonthProfit)}</p>
+          </div>
+        </div>
+      </section>
+
+      {/* 今日やること */}
+      <section>
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-sm font-semibold text-gray-700">今日やること</h2>
+          <Link href="/tasks" className="text-xs text-blue-600 hover:text-blue-800 transition-colors">タスクをすべて見る →</Link>
+        </div>
+        <div className="space-y-3">
+          {overdueTasks.length > 0 && (
+            <div>
+              <p className="text-xs font-semibold text-red-600 mb-1.5 flex items-center gap-1">
+                <AlertTriangle className="w-3 h-3" />
+                期限超過タスク（{overdueTasks.length}件）
+              </p>
+              <div className="bg-white border border-red-100 rounded-xl overflow-hidden divide-y divide-gray-100">
+                {overdueTasks.map(task => {
+                  const project = demoProjectMap.get(task.projectId)
+                  return (
+                    <div key={task.id} className="flex items-center gap-3 px-4 py-2.5">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs text-gray-400 truncate">{project?.clientName} / {project?.name}</p>
+                        <p className="text-sm font-medium text-red-700 truncate">{task.title}</p>
+                        {task.dueDate && <p className="text-xs text-red-400">期限 {formatYMD(task.dueDate)}</p>}
+                      </div>
+                      <span className={`text-xs font-medium px-1.5 py-0.5 rounded shrink-0 ${DEMO_PRIORITY_CLS[task.priority]}`}>
+                        {DEMO_PRIORITY_LABEL[task.priority]}
+                      </span>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          )}
+          {todayTasks.length > 0 && (
+            <div>
+              <p className="text-xs font-semibold text-blue-600 mb-1.5 flex items-center gap-1">
+                <ListTodo className="w-3 h-3" />
+                今日のタスク（{todayTasks.length}件）
+              </p>
+              <div className="bg-white border border-blue-100 rounded-xl overflow-hidden divide-y divide-gray-100">
+                {todayTasks.map(task => {
+                  const project = demoProjectMap.get(task.projectId)
+                  return (
+                    <div key={task.id} className="flex items-center gap-3 px-4 py-2.5">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs text-gray-400 truncate">{project?.clientName} / {project?.name}</p>
+                        <p className="text-sm font-medium text-gray-900 truncate">{task.title}</p>
+                      </div>
+                      <span className={`text-xs font-medium px-1.5 py-0.5 rounded shrink-0 ${DEMO_PRIORITY_CLS[task.priority]}`}>
+                        {DEMO_PRIORITY_LABEL[task.priority]}
+                      </span>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          )}
+        </div>
+      </section>
+
+      {/* 最近の活動 */}
+      <section>
+        <h2 className="text-sm font-semibold text-gray-700 mb-3">最近の活動</h2>
+        <div className="bg-white border border-gray-200 rounded-xl overflow-hidden divide-y divide-gray-100">
+          {demoActivities.map((act) => (
+            <div key={act.id} className="flex items-center gap-3 px-4 py-3">
+              <span className={`inline-flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded-full shrink-0 ${act.colorCls}`}>
+                <ActivityIcon label={act.label} />
+                {act.label}
+              </span>
+              <div className="flex-1 min-w-0">
+                <p className="text-xs text-gray-400 truncate">{act.clientName}</p>
+                <p className="text-sm font-medium text-gray-900 truncate">{act.projectName}</p>
+              </div>
+              <p className="text-xs text-gray-400 shrink-0">{formatYMD(act.date)}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* 案件状況 */}
+      <section>
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-sm font-semibold text-gray-700">案件状況</h2>
+          <Link href="/projects" className="text-xs text-blue-600 hover:text-blue-700 transition-colors">すべて見る →</Link>
+        </div>
+        <div className="space-y-1.5">
+          {activeDemoProjects.map(p => (
+            <div
+              key={p.id}
+              className="bg-white border border-gray-200 rounded-xl px-4 py-3 flex items-center justify-between"
+            >
+              <div className="min-w-0 flex-1">
+                <p className="text-xs text-gray-400 truncate">{p.clientName}</p>
+                <p className="text-sm font-medium text-gray-900 truncate">{p.name}</p>
+                {p.budget && <p className="text-xs text-gray-400 mt-0.5">{formatCurrency(p.budget)}</p>}
+              </div>
+              <span className={`text-xs font-medium px-2 py-0.5 rounded-full whitespace-nowrap shrink-0 ml-3 ${DEMO_STATUS_CLS[p.status] ?? 'bg-gray-100 text-gray-600'}`}>
+                {p.status}
+              </span>
+            </div>
+          ))}
+        </div>
+      </section>
+    </>
   )
 }
