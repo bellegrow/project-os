@@ -23,7 +23,7 @@ export type ProjectStatus = '商談中' | '提案済' | '受注' | '進行中' |
 
 export interface Project {
   id: string
-  organizationId?: string
+  organizationId: string
   clientName: string
   name: string
   status: ProjectStatus
@@ -43,7 +43,7 @@ export interface Hearing {
 
 export interface Customer {
   id: string
-  organizationId?: string
+  organizationId: string
   name: string
   industry?: string
   website?: string
@@ -77,7 +77,7 @@ export interface EstimateItem {
 
 export interface Estimate {
   id: string
-  organizationId?: string
+  organizationId: string
   projectId: string
   customerId?: string
   title: string
@@ -115,7 +115,7 @@ export type ContractStatus = 'draft' | 'sent' | 'signed' | 'completed' | 'cancel
 
 export interface Contract {
   id: string
-  organizationId?: string
+  organizationId: string
   projectId: string
   customerId?: string
   estimateId?: string
@@ -162,7 +162,7 @@ export interface InvoiceItem {
 
 export interface Invoice {
   id: string
-  organizationId?: string
+  organizationId: string
   projectId: string
   customerId?: string
   estimateId?: string
@@ -232,7 +232,7 @@ export type ActivityType =
 
 export interface Activity {
   id: string
-  organizationId?: string
+  organizationId: string
   projectId?: string
   customerId?: string
   type: ActivityType
@@ -258,7 +258,7 @@ export type TaskPriority = 'low' | 'medium' | 'high'
 
 export interface Task {
   id: string
-  organizationId?: string
+  organizationId: string
   projectId: string
   customerId?: string
   title: string
@@ -295,7 +295,7 @@ export type FileCategory = 'document' | 'image' | 'pdf' | 'design' | 'delivery' 
 
 export interface ProjectFile {
   id: string
-  organizationId?: string
+  organizationId: string
   projectId: string
   customerId?: string
   name: string
@@ -336,7 +336,7 @@ export type CostCategory = 'outsourcing' | 'material' | 'tool' | 'ad' | 'other'
 
 export interface ProjectCost {
   id: string
-  organizationId?: string
+  organizationId: string
   projectId: string
   customerId?: string
   title: string

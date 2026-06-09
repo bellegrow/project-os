@@ -40,10 +40,10 @@ export function getProject(id: string): Project | undefined {
 }
 
 export function createProject(
-  data: Omit<Project, 'id' | 'createdAt' | 'updatedAt'>
+  data: Omit<Project, 'id' | 'createdAt' | 'updatedAt' | 'organizationId'>
 ): Project {
   const now = new Date().toISOString()
-  const project: Project = { ...data, id: crypto.randomUUID(), createdAt: now, updatedAt: now }
+  const project: Project = { organizationId: 'local', ...data, id: crypto.randomUUID(), createdAt: now, updatedAt: now }
   saveAll(KEYS.PROJECTS, [...getAll<Project>(KEYS.PROJECTS), project])
   return project
 }
@@ -193,6 +193,7 @@ export function createEstimate(input: EstimateInput): Estimate {
   const { subtotal, tax, total } = computeTotals(items, input.taxRate)
   const estimate: Estimate = {
     id,
+    organizationId: 'local',
     projectId: input.projectId,
     customerId: input.customerId,
     title: input.title,
@@ -283,6 +284,7 @@ export function createInvoice(input: InvoiceInput): Invoice {
   const { subtotal, tax, total } = computeInvoiceTotals(items, input.taxRate)
   const invoice: Invoice = {
     id,
+    organizationId: 'local',
     projectId: input.projectId,
     customerId: input.customerId,
     estimateId: input.estimateId,
@@ -395,6 +397,7 @@ export function createContract(input: ContractInput): Contract {
   const now = new Date().toISOString()
   const contract: Contract = {
     id: crypto.randomUUID(),
+    organizationId: 'local',
     projectId: input.projectId,
     customerId: input.customerId,
     estimateId: input.estimateId,
@@ -472,6 +475,7 @@ export function createActivity(input: ActivityInput): Activity {
   const now = new Date().toISOString()
   const activity: Activity = {
     id: crypto.randomUUID(),
+    organizationId: 'local',
     projectId: input.projectId,
     customerId: input.customerId,
     type: input.type,
@@ -538,6 +542,7 @@ export function createTask(input: TaskInput): Task {
   const now = new Date().toISOString()
   const task: Task = {
     id: crypto.randomUUID(),
+    organizationId: 'local',
     projectId: input.projectId,
     customerId: input.customerId,
     title: input.title,
@@ -606,6 +611,7 @@ export function createProjectCost(input: ProjectCostInput): ProjectCost {
   const now = new Date().toISOString()
   const cost: ProjectCost = {
     id: crypto.randomUUID(),
+    organizationId: 'local',
     projectId: input.projectId,
     customerId: input.customerId,
     title: input.title,
@@ -660,6 +666,7 @@ export function createProjectFile(input: ProjectFileInput): ProjectFile {
   const now = new Date().toISOString()
   const file: ProjectFile = {
     id: crypto.randomUUID(),
+    organizationId: 'local',
     projectId: input.projectId,
     customerId: input.customerId,
     name: input.name,

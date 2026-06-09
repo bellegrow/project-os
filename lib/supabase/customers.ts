@@ -1,9 +1,11 @@
 import { createClient } from './client'
 import { Customer } from '../types'
+import { getCurrentOrganizationId } from '@/lib/auth/getCurrentOrganization'
 
 type CustomerRow = {
   id: string
   user_id: string
+  organization_id: string | null
   name: string
   industry: string | null
   website: string | null
@@ -22,6 +24,7 @@ function isConfigured(): boolean {
 function fromRow(row: CustomerRow): Customer {
   return {
     id: row.id,
+    organizationId: row.organization_id ?? '',
     name: row.name,
     industry: row.industry ?? undefined,
     website: row.website ?? undefined,
@@ -34,7 +37,7 @@ function fromRow(row: CustomerRow): Customer {
 export async function getCustomers(): Promise<Customer[]> {
   if (!isConfigured()) return []
   const supabase = createClient()
-  // TODO: v1.4+ — .eq('organization_id', organizationId) でテナント分離フィルタを追加
+  // TODO: v1.4.2 — .eq('organization_id', organizationId) でテナント分離フィルタを追加
   const { data, error } = await supabase
     .from('customers')
     .select('*')
@@ -56,7 +59,7 @@ export async function getCustomer(id: string): Promise<Customer | undefined> {
 }
 
 export async function createCustomer(
-  input: Omit<Customer, 'id' | 'createdAt' | 'updatedAt'>
+  input: Omit<Customer, 'id' | 'createdAt' | 'updatedAt' | 'organizationId'>
 ): Promise<Customer | undefined> {
   if (!isConfigured()) return undefined
   const supabase = createClient()
@@ -65,10 +68,13 @@ export async function createCustomer(
   } = await supabase.auth.getUser()
   if (!user) return undefined
 
+  const organizationId = await getCurrentOrganizationId()
+
   const { data, error } = await supabase
     .from('customers')
     .insert({
       user_id: user.id,
+      organization_id: organizationId,
       name: input.name,
       industry: input.industry ?? null,
       website: input.website ?? null,

@@ -18,6 +18,12 @@ function agoDate(days: number): string {
   return ago(days).slice(0, 10)
 }
 
+// ─── organizationId helper ──────────────────────────────────────────────────
+// デモデータは localStorage モード相当なので organizationId: 'local' を付与する
+function withOrg<T extends object>(items: Omit<T, 'organizationId'>[]): T[] {
+  return items.map(item => ({ ...item, organizationId: 'local' })) as unknown as T[]
+}
+
 // ─── groupBy helper ─────────────────────────────────────────────────────────
 function groupBy<T>(arr: T[], getKey: (item: T) => string): Map<string, T[]> {
   const m = new Map<string, T[]>()
@@ -31,24 +37,24 @@ function groupBy<T>(arr: T[], getKey: (item: T) => string): Map<string, T[]> {
 }
 
 // ─── Customers ──────────────────────────────────────────────────────────────
-export const demoCustomers: Customer[] = [
+export const demoCustomers: Customer[] = withOrg<Customer>([
   { id: 'demo-cust-1', name: '株式会社サンプル',    industry: 'IT・Web',                   website: 'sample-corp.example',  createdAt: ago(90),  updatedAt: ago(2)  },
   { id: 'demo-cust-2', name: 'BELLE美容室',         industry: '美容・サロン',               website: 'belle-salon.example',  createdAt: ago(60),  updatedAt: ago(5)  },
   { id: 'demo-cust-3', name: '田中工務店',           industry: '建設・工務店',                                                createdAt: ago(45),  updatedAt: ago(3)  },
   { id: 'demo-cust-4', name: '山田デザイン事務所',   industry: 'デザイン・クリエイティブ',                                    createdAt: ago(30),  updatedAt: ago(10) },
   { id: 'demo-cust-5', name: 'NOVA Academy',        industry: '教育・スクール',              website: 'nova-academy.example', createdAt: ago(120), updatedAt: ago(1)  },
   { id: 'demo-cust-6', name: '株式会社蒼建',         industry: '建設・不動産',                                                createdAt: ago(20),  updatedAt: ago(12) },
-]
+])
 
 // ─── Projects ───────────────────────────────────────────────────────────────
-export const demoProjects: Project[] = [
+export const demoProjects: Project[] = withOrg<Project>([
   { id: 'demo-proj-1', clientName: '株式会社サンプル',    name: 'コーポレートサイト制作',         status: '受注',   budget: 2800000, customerId: 'demo-cust-1', createdAt: ago(60), updatedAt: ago(2)  },
   { id: 'demo-proj-2', clientName: 'BELLE美容室',         name: 'LP制作',                        status: '提案済', budget: 350000,  customerId: 'demo-cust-2', createdAt: ago(20), updatedAt: ago(5)  },
   { id: 'demo-proj-3', clientName: '田中工務店',           name: '採用サイト制作',                status: '進行中', budget: 1500000, customerId: 'demo-cust-3', createdAt: ago(45), updatedAt: ago(3)  },
   { id: 'demo-proj-4', clientName: '山田デザイン事務所',   name: 'ポートフォリオサイト制作',      status: '商談中', budget: 480000,  customerId: 'demo-cust-4', createdAt: ago(15), updatedAt: ago(10) },
   { id: 'demo-proj-5', clientName: 'NOVA Academy',        name: 'スクールサイト制作',            status: '受注',   budget: 2200000, customerId: 'demo-cust-5', createdAt: ago(50), updatedAt: ago(1)  },
   { id: 'demo-proj-6', clientName: '株式会社蒼建',         name: 'コーポレートサイトリニューアル', status: '商談中', budget: 1200000, customerId: 'demo-cust-6', createdAt: ago(12), updatedAt: ago(12) },
-]
+])
 
 // ─── Contacts ───────────────────────────────────────────────────────────────
 export const demoContacts: Contact[] = [
@@ -105,7 +111,7 @@ export const demoHearings: Hearing[] = [
 ]
 
 // ─── Estimates ──────────────────────────────────────────────────────────────
-export const demoEstimates: Estimate[] = [
+export const demoEstimates: Estimate[] = withOrg<Estimate>([
   {
     id: 'demo-est-1', projectId: 'demo-proj-1', customerId: 'demo-cust-1',
     title: 'コーポレートサイト制作 見積書（本体）',
@@ -166,10 +172,10 @@ export const demoEstimates: Estimate[] = [
     ],
     createdAt: ago(48), updatedAt: ago(48),
   },
-]
+])
 
 // ─── Invoices ───────────────────────────────────────────────────────────────
-export const demoInvoices: Invoice[] = [
+export const demoInvoices: Invoice[] = withOrg<Invoice>([
   {
     id: 'demo-inv-1', projectId: 'demo-proj-1', customerId: 'demo-cust-1', estimateId: 'demo-est-1',
     title: 'コーポレートサイト制作 請求書（着手金）',
@@ -199,10 +205,10 @@ export const demoInvoices: Invoice[] = [
     ],
     createdAt: ago(8), updatedAt: ago(8),
   },
-]
+])
 
 // ─── Contracts ──────────────────────────────────────────────────────────────
-export const demoContracts: Contract[] = [
+export const demoContracts: Contract[] = withOrg<Contract>([
   {
     id: 'demo-cont-1', projectId: 'demo-proj-1', customerId: 'demo-cust-1', estimateId: 'demo-est-1',
     title: 'コーポレートサイト制作 業務委託契約書',
@@ -227,10 +233,10 @@ export const demoContracts: Contract[] = [
     status: 'draft', amount: 330000,
     createdAt: ago(12), updatedAt: ago(12),
   },
-]
+])
 
 // ─── Project Costs ──────────────────────────────────────────────────────────
-export const demoProjectCosts: ProjectCost[] = [
+export const demoProjectCosts: ProjectCost[] = withOrg<ProjectCost>([
   { id: 'demo-cost-1', projectId: 'demo-proj-1', customerId: 'demo-cust-1', title: '外注デザイナー費用',          category: 'outsourcing', amount: 350000, costDate: agoDate(35), createdAt: ago(35), updatedAt: ago(35) },
   { id: 'demo-cost-2', projectId: 'demo-proj-1', customerId: 'demo-cust-1', title: 'Adobe Stock 素材費',          category: 'material',    amount: 22000,  costDate: agoDate(25), createdAt: ago(25), updatedAt: ago(25) },
   { id: 'demo-cost-3', projectId: 'demo-proj-1', customerId: 'demo-cust-1', title: 'サーバー移行作業費（外注）',  category: 'outsourcing', amount: 80000,  costDate: agoDate(15), createdAt: ago(15), updatedAt: ago(15) },
@@ -238,20 +244,20 @@ export const demoProjectCosts: ProjectCost[] = [
   { id: 'demo-cost-5', projectId: 'demo-proj-3', customerId: 'demo-cust-3', title: 'Figma プレミアム（3ヶ月）',  category: 'tool',        amount: 9000,   costDate: agoDate(30), createdAt: ago(30), updatedAt: ago(30) },
   { id: 'demo-cost-6', projectId: 'demo-proj-5', customerId: 'demo-cust-5', title: '外注コーダー費用',            category: 'outsourcing', amount: 240000, costDate: agoDate(30), createdAt: ago(30), updatedAt: ago(30) },
   { id: 'demo-cost-7', projectId: 'demo-proj-5', customerId: 'demo-cust-5', title: 'フォントライセンス',           category: 'tool',        amount: 15000,  costDate: agoDate(20), createdAt: ago(20), updatedAt: ago(20) },
-]
+])
 
 // ─── Project Files ──────────────────────────────────────────────────────────
-export const demoProjectFiles: ProjectFile[] = [
+export const demoProjectFiles: ProjectFile[] = withOrg<ProjectFile>([
   { id: 'demo-file-1', projectId: 'demo-proj-1', customerId: 'demo-cust-1', name: 'コーポレートサイト ワイヤーフレーム.fig', category: 'design',   fileType: 'figma', externalUrl: 'https://figma.com/file/demo-wireframe', createdAt: ago(45), updatedAt: ago(45) },
   { id: 'demo-file-2', projectId: 'demo-proj-1', customerId: 'demo-cust-1', name: '契約書_株式会社サンプル_署名済.pdf',      category: 'pdf',      fileType: 'pdf',   createdAt: ago(55), updatedAt: ago(55) },
   { id: 'demo-file-3', projectId: 'demo-proj-1', customerId: 'demo-cust-1', name: 'ヒアリングシート.docx',                   category: 'document', fileType: 'docx',  createdAt: ago(50), updatedAt: ago(50) },
   { id: 'demo-file-4', projectId: 'demo-proj-3', customerId: 'demo-cust-3', name: '採用サイト デザインカンプ v2.fig',        category: 'design',   fileType: 'figma', externalUrl: 'https://figma.com/file/demo-design', createdAt: ago(18), updatedAt: ago(18) },
   { id: 'demo-file-5', projectId: 'demo-proj-3', customerId: 'demo-cust-3', name: '現場写真素材一式.zip',                    category: 'other',    fileType: 'zip',   createdAt: ago(15), updatedAt: ago(15) },
   { id: 'demo-file-6', projectId: 'demo-proj-5', customerId: 'demo-cust-5', name: 'スクールサイト サイトマップ.pdf',         category: 'pdf',      fileType: 'pdf',   createdAt: ago(44), updatedAt: ago(44) },
-]
+])
 
 // ─── Tasks ──────────────────────────────────────────────────────────────────
-export const demoTasks: Task[] = [
+export const demoTasks: Task[] = withOrg<Task>([
   { id: 'demo-task-1', projectId: 'demo-proj-3', customerId: 'demo-cust-3', title: '提案書作成',     description: 'ヒアリング内容をもとに提案書を作成する', status: 'todo',        priority: 'high',   dueDate: new Date(Date.now() - 4 * 86400000).toISOString().slice(0, 10),  createdAt: ago(10), updatedAt: ago(4)  },
   { id: 'demo-task-2', projectId: 'demo-proj-2', customerId: 'demo-cust-2', title: '見積書送付',     description: 'LP制作の見積書を送付する',               status: 'todo',        priority: 'medium', dueDate: new Date().toISOString().slice(0, 10),                           createdAt: ago(8),  updatedAt: ago(1)  },
   { id: 'demo-task-3', projectId: 'demo-proj-4', customerId: 'demo-cust-4', title: 'ヒアリング実施', description: '要件のヒアリング・ディスカッション',      status: 'todo',        priority: 'medium', dueDate: new Date(Date.now() + 3 * 86400000).toISOString().slice(0, 10), createdAt: ago(5),  updatedAt: ago(2)  },
@@ -259,7 +265,7 @@ export const demoTasks: Task[] = [
   { id: 'demo-task-5', projectId: 'demo-proj-5', customerId: 'demo-cust-5', title: '契約書作成',     description: 'スクールサイト受注の契約書を作成',         status: 'in_progress', priority: 'medium', dueDate: new Date(Date.now() + 2 * 86400000).toISOString().slice(0, 10), createdAt: ago(7),  updatedAt: ago(1)  },
   { id: 'demo-task-6', projectId: 'demo-proj-1', customerId: 'demo-cust-1', title: '初回打ち合わせ', status: 'done', priority: 'medium', completedAt: ago(30).slice(0, 10), createdAt: ago(35), updatedAt: ago(30) },
   { id: 'demo-task-7', projectId: 'demo-proj-3', customerId: 'demo-cust-3', title: '要件整理',       status: 'done', priority: 'low',    completedAt: ago(20).slice(0, 10), createdAt: ago(25), updatedAt: ago(20) },
-]
+])
 
 // ─── Activities (dashboard feed) ────────────────────────────────────────────
 export type DemoActivity = {

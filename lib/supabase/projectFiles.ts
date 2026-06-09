@@ -1,9 +1,11 @@
 import { createClient } from './client'
 import { ProjectFile, ProjectFileInput, ProjectFileUpdateInput, FileCategory } from '../types'
+import { getCurrentOrganizationId } from '@/lib/auth/getCurrentOrganization'
 
 type FileRow = {
   id: string
   project_id: string
+  organization_id: string | null
   customer_id: string | null
   name: string
   category: string
@@ -27,6 +29,7 @@ function isConfigured(): boolean {
 function fromRow(row: FileRow): ProjectFile {
   return {
     id: row.id,
+    organizationId: row.organization_id ?? '',
     projectId: row.project_id,
     customerId: row.customer_id ?? undefined,
     name: row.name,
@@ -83,10 +86,14 @@ export async function createProjectFile(input: ProjectFileInput): Promise<Projec
   const supabase = createClient()
   const { data: { session } } = await supabase.auth.getSession()
   if (!session) return undefined
+
+  const organizationId = await getCurrentOrganizationId()
+
   const { data, error } = await supabase
     .from('project_files')
     .insert({
       user_id: session.user.id,
+      organization_id: organizationId,
       project_id: input.projectId,
       customer_id: input.customerId ?? null,
       name: input.name,

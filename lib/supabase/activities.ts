@@ -1,9 +1,11 @@
 import { createClient } from './client'
 import { Activity, ActivityInput } from '../types'
+import { getCurrentOrganizationId } from '@/lib/auth/getCurrentOrganization'
 
 type ActivityRow = {
   id: string
   project_id: string | null
+  organization_id: string | null
   customer_id: string | null
   type: string
   title: string
@@ -22,6 +24,7 @@ function isConfigured(): boolean {
 function fromRow(row: ActivityRow): Activity {
   return {
     id: row.id,
+    organizationId: row.organization_id ?? '',
     projectId: row.project_id ?? undefined,
     customerId: row.customer_id ?? undefined,
     type: row.type as Activity['type'],
@@ -35,7 +38,7 @@ function fromRow(row: ActivityRow): Activity {
 export async function getAllActivities(): Promise<Activity[]> {
   if (!isConfigured()) return []
   const supabase = createClient()
-  // TODO: v1.4+ — .eq('organization_id', organizationId) でテナント分離フィルタを追加
+  // TODO: v1.4.2 — .eq('organization_id', organizationId) でテナント分離フィルタを追加
   const { data, error } = await supabase
     .from('activities')
     .select('*')
@@ -85,10 +88,14 @@ export async function createActivity(input: ActivityInput): Promise<Activity | u
   const supabase = createClient()
   const { data: { session } } = await supabase.auth.getSession()
   if (!session) return undefined
+
+  const organizationId = await getCurrentOrganizationId()
+
   const { data, error } = await supabase
     .from('activities')
     .insert({
       user_id: session.user.id,
+      organization_id: organizationId,
       project_id: input.projectId ?? null,
       customer_id: input.customerId ?? null,
       type: input.type,

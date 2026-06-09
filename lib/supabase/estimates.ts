@@ -1,5 +1,6 @@
 import { createClient } from './client'
 import { Estimate, EstimateItem, EstimateStatus, EstimateInput } from '../types'
+import { getCurrentOrganizationId } from '@/lib/auth/getCurrentOrganization'
 
 type EstimateItemRow = {
   id: string
@@ -15,6 +16,7 @@ type EstimateItemRow = {
 type EstimateRow = {
   id: string
   user_id: string
+  organization_id: string | null
   project_id: string
   customer_id: string | null
   title: string
@@ -51,6 +53,7 @@ function itemFromRow(row: EstimateItemRow): EstimateItem {
 function fromRow(row: EstimateRow): Estimate {
   return {
     id: row.id,
+    organizationId: row.organization_id ?? '',
     projectId: row.project_id,
     customerId: row.customer_id ?? undefined,
     title: row.title,
@@ -120,12 +123,14 @@ export async function createEstimate(input: EstimateInput): Promise<Estimate | u
   } = await supabase.auth.getUser()
   if (!user) return undefined
 
+  const organizationId = await getCurrentOrganizationId()
   const { subtotal, tax, total } = computeTotals(input.items, input.taxRate)
 
   const { data: estimateData, error: estimateError } = await supabase
     .from('estimates')
     .insert({
       user_id: user.id,
+      organization_id: organizationId,
       project_id: input.projectId,
       customer_id: input.customerId ?? null,
       title: input.title,

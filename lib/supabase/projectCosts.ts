@@ -1,10 +1,12 @@
 import { createClient } from './client'
 import { ProjectCost, ProjectCostInput, ProjectCostUpdateInput } from '../types'
 import { getTodayStr } from '../utils'
+import { getCurrentOrganizationId } from '@/lib/auth/getCurrentOrganization'
 
 type CostRow = {
   id: string
   project_id: string
+  organization_id: string | null
   customer_id: string | null
   title: string
   category: string
@@ -25,6 +27,7 @@ function isConfigured(): boolean {
 function fromRow(row: CostRow): ProjectCost {
   return {
     id: row.id,
+    organizationId: row.organization_id ?? '',
     projectId: row.project_id,
     customerId: row.customer_id ?? undefined,
     title: row.title,
@@ -78,10 +81,14 @@ export async function createProjectCost(input: ProjectCostInput): Promise<Projec
   const supabase = createClient()
   const { data: { session } } = await supabase.auth.getSession()
   if (!session) return undefined
+
+  const organizationId = await getCurrentOrganizationId()
+
   const { data, error } = await supabase
     .from('project_costs')
     .insert({
       user_id: session.user.id,
+      organization_id: organizationId,
       project_id: input.projectId,
       customer_id: input.customerId ?? null,
       title: input.title,

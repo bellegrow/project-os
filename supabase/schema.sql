@@ -606,13 +606,35 @@ create index if not exists organization_members_user_id_idx
 --   create policy "members can read own memberships" on organization_members
 --     for select using (user_id = auth.uid());
 
--- TODO: v1.4.1 — 既存テーブルに organization_id を追加する
---   alter table customers  add column if not exists organization_id uuid references organizations(id);
---   alter table projects   add column if not exists organization_id uuid references organizations(id);
---   alter table tasks      add column if not exists organization_id uuid references organizations(id);
---   alter table activities add column if not exists organization_id uuid references organizations(id);
---   alter table estimates  add column if not exists organization_id uuid references organizations(id);
---   alter table invoices   add column if not exists organization_id uuid references organizations(id);
---   alter table contracts  add column if not exists organization_id uuid references organizations(id);
---   alter table project_costs  add column if not exists organization_id uuid references organizations(id);
---   alter table project_files  add column if not exists organization_id uuid references organizations(id);
+-- ════════════════════════════════════════════
+-- v1.4.1: 全業務データへ organization_id を付与
+--
+-- NOTE: organization_id は nullable（既存行は NULL のまま / 新規作成時に自動セット）
+-- NOTE: NOT NULL 制約・RLS は v1.4.3 で追加予定
+-- NOTE: Supabase SQL Editor でこのブロックをそのまま実行できる
+-- ════════════════════════════════════════════
+
+alter table customers     add column if not exists organization_id uuid references organizations(id);
+alter table projects      add column if not exists organization_id uuid references organizations(id);
+alter table tasks         add column if not exists organization_id uuid references organizations(id);
+alter table activities    add column if not exists organization_id uuid references organizations(id);
+alter table estimates     add column if not exists organization_id uuid references organizations(id);
+alter table invoices      add column if not exists organization_id uuid references organizations(id);
+alter table contracts     add column if not exists organization_id uuid references organizations(id);
+alter table project_costs add column if not exists organization_id uuid references organizations(id);
+alter table project_files add column if not exists organization_id uuid references organizations(id);
+
+-- 検索用インデックス（v1.4.2 でフィルタ追加後に効く）
+create index if not exists customers_organization_id_idx     on customers     (organization_id);
+create index if not exists projects_organization_id_idx      on projects      (organization_id);
+create index if not exists tasks_organization_id_idx         on tasks         (organization_id);
+create index if not exists activities_organization_id_idx    on activities    (organization_id);
+create index if not exists estimates_organization_id_idx     on estimates     (organization_id);
+create index if not exists invoices_organization_id_idx      on invoices      (organization_id);
+create index if not exists contracts_organization_id_idx     on contracts     (organization_id);
+create index if not exists project_costs_organization_id_idx on project_costs (organization_id);
+create index if not exists project_files_organization_id_idx on project_files (organization_id);
+
+-- TODO: v1.4.2 — 各 getAll* に organization_id フィルタを追加する
+--   例: .eq('organization_id', await getCurrentOrganizationId())
+-- TODO: v1.4.3 — RLS ポリシーを追加し NOT NULL 制約を付与する

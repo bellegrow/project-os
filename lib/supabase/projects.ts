@@ -1,10 +1,11 @@
 import { createClient } from './client'
 import { Project, ProjectStatus } from '../types'
+import { getCurrentOrganizationId } from '@/lib/auth/getCurrentOrganization'
 
-// Supabase DB の snake_case 行型
 type ProjectRow = {
   id: string
   user_id: string
+  organization_id: string | null
   customer_id: string | null
   client_name: string
   name: string
@@ -24,6 +25,7 @@ function isConfigured(): boolean {
 function fromRow(row: ProjectRow): Project {
   return {
     id: row.id,
+    organizationId: row.organization_id ?? '',
     clientName: row.client_name,
     name: row.name,
     status: row.status as ProjectStatus,
@@ -37,7 +39,7 @@ function fromRow(row: ProjectRow): Project {
 export async function getProjects(): Promise<Project[]> {
   if (!isConfigured()) return []
   const supabase = createClient()
-  // TODO: v1.4+ — .eq('organization_id', organizationId) でテナント分離フィルタを追加
+  // TODO: v1.4.2 — .eq('organization_id', organizationId) でテナント分離フィルタを追加
   const { data, error } = await supabase
     .from('projects')
     .select('*')
@@ -59,7 +61,7 @@ export async function getProject(id: string): Promise<Project | undefined> {
 }
 
 export async function createProject(
-  input: Omit<Project, 'id' | 'createdAt' | 'updatedAt'>
+  input: Omit<Project, 'id' | 'createdAt' | 'updatedAt' | 'organizationId'>
 ): Promise<Project | undefined> {
   if (!isConfigured()) return undefined
   const supabase = createClient()
@@ -68,10 +70,13 @@ export async function createProject(
   } = await supabase.auth.getUser()
   if (!user) return undefined
 
+  const organizationId = await getCurrentOrganizationId()
+
   const { data, error } = await supabase
     .from('projects')
     .insert({
       user_id: user.id,
+      organization_id: organizationId,
       customer_id: input.customerId ?? null,
       client_name: input.clientName,
       name: input.name,
@@ -120,7 +125,6 @@ export async function updateProjectStatus(
 export async function deleteProject(id: string): Promise<void> {
   if (!isConfigured()) return
   const supabase = createClient()
-  // hearings など関連データは DB の ON DELETE CASCADE で自動削除される
   await supabase.from('projects').delete().eq('id', id)
 }
 

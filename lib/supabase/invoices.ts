@@ -1,5 +1,6 @@
 import { createClient } from './client'
 import { Invoice, InvoiceItem, InvoiceStatus, InvoiceInput, PaymentInput } from '../types'
+import { getCurrentOrganizationId } from '@/lib/auth/getCurrentOrganization'
 
 type InvoiceItemRow = {
   id: string
@@ -15,6 +16,7 @@ type InvoiceItemRow = {
 type InvoiceRow = {
   id: string
   user_id: string
+  organization_id: string | null
   project_id: string
   customer_id: string | null
   estimate_id: string | null
@@ -56,6 +58,7 @@ function itemFromRow(row: InvoiceItemRow): InvoiceItem {
 function fromRow(row: InvoiceRow): Invoice {
   return {
     id: row.id,
+    organizationId: row.organization_id ?? '',
     projectId: row.project_id,
     customerId: row.customer_id ?? undefined,
     estimateId: row.estimate_id ?? undefined,
@@ -128,12 +131,14 @@ export async function createInvoice(input: InvoiceInput): Promise<Invoice | unde
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return undefined
 
+  const organizationId = await getCurrentOrganizationId()
   const { subtotal, tax, total } = computeTotals(input.items, input.taxRate)
 
   const { data: invData, error: invError } = await supabase
     .from('invoices')
     .insert({
       user_id: user.id,
+      organization_id: organizationId,
       project_id: input.projectId,
       customer_id: input.customerId ?? null,
       estimate_id: input.estimateId ?? null,

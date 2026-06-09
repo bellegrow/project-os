@@ -1,10 +1,12 @@
 import { createClient } from './client'
 import { Task, TaskInput, TaskUpdateInput } from '../types'
 import { getTodayStr } from '../utils'
+import { getCurrentOrganizationId } from '@/lib/auth/getCurrentOrganization'
 
 type TaskRow = {
   id: string
   project_id: string
+  organization_id: string | null
   customer_id: string | null
   title: string
   description: string | null
@@ -26,6 +28,7 @@ function isConfigured(): boolean {
 function fromRow(row: TaskRow): Task {
   return {
     id: row.id,
+    organizationId: row.organization_id ?? '',
     projectId: row.project_id,
     customerId: row.customer_id ?? undefined,
     title: row.title,
@@ -42,7 +45,7 @@ function fromRow(row: TaskRow): Task {
 export async function getAllTasks(): Promise<Task[]> {
   if (!isConfigured()) return []
   const supabase = createClient()
-  // TODO: v1.4+ — .eq('organization_id', organizationId) でテナント分離フィルタを追加
+  // TODO: v1.4.2 — .eq('organization_id', organizationId) でテナント分離フィルタを追加
   const { data, error } = await supabase
     .from('tasks')
     .select('*')
@@ -108,10 +111,14 @@ export async function createTask(input: TaskInput): Promise<Task | undefined> {
   const supabase = createClient()
   const { data: { session } } = await supabase.auth.getSession()
   if (!session) return undefined
+
+  const organizationId = await getCurrentOrganizationId()
+
   const { data, error } = await supabase
     .from('tasks')
     .insert({
       user_id: session.user.id,
+      organization_id: organizationId,
       project_id: input.projectId,
       customer_id: input.customerId ?? null,
       title: input.title,

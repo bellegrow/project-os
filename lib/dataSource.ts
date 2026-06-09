@@ -67,7 +67,7 @@ export async function getProject(id: string): Promise<Project | undefined> {
 }
 
 export async function createProject(
-  input: Omit<Project, 'id' | 'createdAt' | 'updatedAt'>
+  input: Omit<Project, 'id' | 'createdAt' | 'updatedAt' | 'organizationId'>
 ): Promise<Project | undefined> {
   if (await isCloudMode()) return sbProjects.createProject(input)
   return storage.createProject(input)
@@ -150,7 +150,7 @@ export async function getCustomer(id: string): Promise<Customer | undefined> {
 }
 
 export async function createCustomer(
-  input: Omit<Customer, 'id' | 'createdAt' | 'updatedAt'>
+  input: Omit<Customer, 'id' | 'createdAt' | 'updatedAt' | 'organizationId'>
 ): Promise<Customer | undefined> {
   if (await isCloudMode()) return sbCustomers.createCustomer(input)
   return undefined
