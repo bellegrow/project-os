@@ -635,6 +635,197 @@ create index if not exists contracts_organization_id_idx     on contracts     (o
 create index if not exists project_costs_organization_id_idx on project_costs (organization_id);
 create index if not exists project_files_organization_id_idx on project_files (organization_id);
 
--- TODO: v1.4.2 — 各 getAll* に organization_id フィルタを追加する
---   例: .eq('organization_id', await getCurrentOrganizationId())
--- TODO: v1.4.3 — RLS ポリシーを追加し NOT NULL 制約を付与する
+-- v1.4.2 完了 — 各 getAll* に .or フィルタ追加済み
+-- v1.4.3 完了 — RLS ポリシー追加済み（以下）
+-- TODO: v1.4.4 — RLS 動作確認後に organization_id NOT NULL 制約を付与する
+
+-- ════════════════════════════════════════════
+-- v1.4.3: RLS — organization_id ベースのテナント分離
+--
+-- 前提:
+--   v1.4.0: organizations / organization_members テーブル追加済み
+--   v1.4.1: 全業務テーブルに organization_id カラム追加済み
+--   v1.4.2: アプリ側 getAll* に .or フィルタ追加済み
+--
+-- 実行方法: Supabase SQL Editor でこのブロックをそのまま実行
+--
+-- 注意: 既存行で organization_id IS NULL のものは RLS 適用後
+--       アクセス不可になります。
+--       移行が必要な場合は下記 TODO を参照してください。
+--
+-- service_role は RLS をバイパスするため、
+-- /admin 招待 API（service_role 専用）はそのまま動作します。
+-- ════════════════════════════════════════════
+
+-- ────────────────────────────────────────────
+-- ヘルパー関数: get_my_organization_ids()
+--
+-- organization_members に RLS が掛かると、ポリシー内から
+-- 同テーブルを参照すると無限再帰になる。
+-- SECURITY DEFINER で RLS をバイパスして直接参照することで回避。
+-- ────────────────────────────────────────────
+create or replace function get_my_organization_ids()
+returns setof uuid
+language sql
+security definer
+stable
+set search_path = public
+as $$
+  select organization_id
+  from organization_members
+  where user_id = auth.uid()
+$$;
+
+-- anon からは実行不可。authenticated のみ。
+revoke execute on function get_my_organization_ids() from public;
+grant  execute on function get_my_organization_ids() to authenticated;
+
+-- ────────────────────────────────────────────
+-- organizations / organization_members の RLS 有効化
+-- ────────────────────────────────────────────
+alter table organizations        enable row level security;
+alter table organization_members enable row level security;
+
+-- organizations: 自分が所属する org のみ閲覧可能
+-- INSERT / UPDATE / DELETE は service_role のみ（招待 API 経由）
+create policy "organizations: members can select"
+  on organizations for select
+  using (id in (select get_my_organization_ids()));
+
+-- organization_members: 同じ org のメンバー一覧を閲覧可能
+-- SECURITY DEFINER ヘルパー経由で再帰回避
+create policy "organization_members: view own org"
+  on organization_members for select
+  using (organization_id in (select get_my_organization_ids()));
+
+-- ────────────────────────────────────────────
+-- 既存の user_id ベース RLS ポリシーを削除
+-- （organization_id ベースのポリシーに置き換えるため）
+-- ────────────────────────────────────────────
+drop policy if exists "customers: own data only"            on customers;
+drop policy if exists "contacts: own customers only"        on contacts;
+drop policy if exists "projects: own data only"             on projects;
+drop policy if exists "hearings: own projects only"         on hearings;
+drop policy if exists "estimates: own data only"            on estimates;
+drop policy if exists "estimate_items: own estimates only"  on estimate_items;
+drop policy if exists "invoices: own data only"             on invoices;
+drop policy if exists "invoice_items: own invoices only"    on invoice_items;
+drop policy if exists "contracts: own data only"            on contracts;
+drop policy if exists "project_costs: user owns"            on project_costs;
+drop policy if exists "tasks: user owns"                    on tasks;
+drop policy if exists "activities: user owns"               on activities;
+drop policy if exists "project_files: user owns"            on project_files;
+
+-- ────────────────────────────────────────────
+-- 業務データ 9 テーブル: organization_id ベース RLS
+--
+-- 同一 organization に所属するメンバー全員が
+-- SELECT / INSERT / UPDATE / DELETE 可能。
+--
+-- TODO: v1.4.4 移行作業（RLS 確認後に実行）
+--   UPDATE customers     SET organization_id = '<org_uuid>' WHERE organization_id IS NULL;
+--   UPDATE projects      SET organization_id = '<org_uuid>' WHERE organization_id IS NULL;
+--   UPDATE tasks         SET organization_id = '<org_uuid>' WHERE organization_id IS NULL;
+--   UPDATE activities    SET organization_id = '<org_uuid>' WHERE organization_id IS NULL;
+--   UPDATE estimates     SET organization_id = '<org_uuid>' WHERE organization_id IS NULL;
+--   UPDATE invoices      SET organization_id = '<org_uuid>' WHERE organization_id IS NULL;
+--   UPDATE contracts     SET organization_id = '<org_uuid>' WHERE organization_id IS NULL;
+--   UPDATE project_costs SET organization_id = '<org_uuid>' WHERE organization_id IS NULL;
+--   UPDATE project_files SET organization_id = '<org_uuid>' WHERE organization_id IS NULL;
+--   (移行完了後)
+--   ALTER TABLE customers     ALTER COLUMN organization_id SET NOT NULL;
+--   ALTER TABLE projects      ALTER COLUMN organization_id SET NOT NULL;
+--   ...（全9テーブル）
+-- ────────────────────────────────────────────
+
+create policy "customers: org members only"
+  on customers for all
+  using     (organization_id in (select get_my_organization_ids()))
+  with check (organization_id in (select get_my_organization_ids()));
+
+create policy "projects: org members only"
+  on projects for all
+  using     (organization_id in (select get_my_organization_ids()))
+  with check (organization_id in (select get_my_organization_ids()));
+
+create policy "tasks: org members only"
+  on tasks for all
+  using     (organization_id in (select get_my_organization_ids()))
+  with check (organization_id in (select get_my_organization_ids()));
+
+create policy "activities: org members only"
+  on activities for all
+  using     (organization_id in (select get_my_organization_ids()))
+  with check (organization_id in (select get_my_organization_ids()));
+
+create policy "estimates: org members only"
+  on estimates for all
+  using     (organization_id in (select get_my_organization_ids()))
+  with check (organization_id in (select get_my_organization_ids()));
+
+create policy "invoices: org members only"
+  on invoices for all
+  using     (organization_id in (select get_my_organization_ids()))
+  with check (organization_id in (select get_my_organization_ids()));
+
+create policy "contracts: org members only"
+  on contracts for all
+  using     (organization_id in (select get_my_organization_ids()))
+  with check (organization_id in (select get_my_organization_ids()));
+
+create policy "project_costs: org members only"
+  on project_costs for all
+  using     (organization_id in (select get_my_organization_ids()))
+  with check (organization_id in (select get_my_organization_ids()));
+
+create policy "project_files: org members only"
+  on project_files for all
+  using     (organization_id in (select get_my_organization_ids()))
+  with check (organization_id in (select get_my_organization_ids()));
+
+-- ────────────────────────────────────────────
+-- 子テーブル: organization_id を持たないため親テーブルの RLS に委ねる
+-- 親テーブルが org フィルタ済みなので、子も自動的に org 分離される。
+-- replace_estimate_items / replace_invoice_items RPC も
+-- SECURITY INVOKER のため同じ RLS が適用される。
+-- ────────────────────────────────────────────
+
+-- contacts: customers の RLS に委ねる
+create policy "contacts: via customers org"
+  on contacts for all
+  using (
+    exists (select 1 from customers where customers.id = contacts.customer_id)
+  )
+  with check (
+    exists (select 1 from customers where customers.id = contacts.customer_id)
+  );
+
+-- hearings: projects の RLS に委ねる
+create policy "hearings: via projects org"
+  on hearings for all
+  using (
+    exists (select 1 from projects where projects.id = hearings.project_id)
+  )
+  with check (
+    exists (select 1 from projects where projects.id = hearings.project_id)
+  );
+
+-- estimate_items: estimates の RLS に委ねる
+create policy "estimate_items: via estimates org"
+  on estimate_items for all
+  using (
+    exists (select 1 from estimates where estimates.id = estimate_items.estimate_id)
+  )
+  with check (
+    exists (select 1 from estimates where estimates.id = estimate_items.estimate_id)
+  );
+
+-- invoice_items: invoices の RLS に委ねる
+create policy "invoice_items: via invoices org"
+  on invoice_items for all
+  using (
+    exists (select 1 from invoices where invoices.id = invoice_items.invoice_id)
+  )
+  with check (
+    exists (select 1 from invoices where invoices.id = invoice_items.invoice_id)
+  );
