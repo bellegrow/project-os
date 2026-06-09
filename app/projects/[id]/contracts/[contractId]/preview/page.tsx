@@ -134,13 +134,34 @@ export default function ContractPreviewPage() {
               </p>
             </div>
             {/* 乙（受託者） */}
-            <div className="text-right text-sm text-gray-700 space-y-0.5 shrink-0">
+            <div className="text-right text-sm text-gray-700 space-y-0.5 shrink-0 max-w-[220px]">
+              {settings.issuerLogoUrl && (
+                <div className="flex justify-end mb-2">
+                  <img
+                    src={settings.issuerLogoUrl}
+                    alt="ロゴ"
+                    className="h-12 max-w-[120px] object-contain"
+                  />
+                </div>
+              )}
               <p className="text-xs text-gray-400">乙（受託者）</p>
               <p className={`font-bold text-base ${!issuerOk ? 'text-gray-400' : ''}`}>
                 {settings.issuerName || '（事業者名未設定）'}
               </p>
+              {settings.issuerRepresentativeName && (
+                <p className="text-gray-600">{settings.issuerRepresentativeName}</p>
+              )}
               {settings.issuerDepartment && (
                 <p className="text-gray-500">{settings.issuerDepartment}</p>
+              )}
+              {settings.issuerPostalCode && (
+                <p className="text-gray-500">〒{settings.issuerPostalCode}</p>
+              )}
+              {settings.issuerAddress && (
+                <p className="text-gray-500">{settings.issuerAddress}</p>
+              )}
+              {settings.issuerPhone && (
+                <p className="text-gray-500">TEL: {settings.issuerPhone}</p>
               )}
               {settings.issuerEmail && (
                 <p className="text-gray-500">{settings.issuerEmail}</p>
@@ -244,6 +265,9 @@ export default function ContractPreviewPage() {
               <p className={`text-sm font-semibold ${!issuerOk ? 'text-gray-400' : 'text-gray-900'}`}>
                 {settings.issuerName || '（事業者名未設定）'}
               </p>
+              {settings.issuerRepresentativeName && (
+                <p className="text-xs text-gray-600 mt-0.5">代表者　{settings.issuerRepresentativeName}</p>
+              )}
               <p className="text-xs text-gray-400 mt-6">署名 / 捺印</p>
               <div className="h-12 border-b border-gray-300 mt-1" />
             </div>

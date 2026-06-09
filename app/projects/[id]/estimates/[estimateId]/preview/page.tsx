@@ -135,12 +135,33 @@ export default function EstimatePreviewPage() {
               </p>
             </div>
             {/* 発行者 */}
-            <div className="text-right text-sm text-gray-700 space-y-0.5 shrink-0">
+            <div className="text-right text-sm text-gray-700 space-y-0.5 shrink-0 max-w-[220px]">
+              {settings.issuerLogoUrl && (
+                <div className="flex justify-end mb-2">
+                  <img
+                    src={settings.issuerLogoUrl}
+                    alt="ロゴ"
+                    className="h-12 max-w-[120px] object-contain"
+                  />
+                </div>
+              )}
               <p className={`font-bold text-base ${!settings.issuerName ? 'text-gray-400' : ''}`}>
                 {settings.issuerName || '（事業者名未設定）'}
               </p>
+              {settings.issuerRepresentativeName && (
+                <p className="text-gray-600">{settings.issuerRepresentativeName}</p>
+              )}
               {settings.issuerDepartment && (
                 <p className="text-gray-500">{settings.issuerDepartment}</p>
+              )}
+              {settings.issuerPostalCode && (
+                <p className="text-gray-500">〒{settings.issuerPostalCode}</p>
+              )}
+              {settings.issuerAddress && (
+                <p className="text-gray-500">{settings.issuerAddress}</p>
+              )}
+              {settings.issuerPhone && (
+                <p className="text-gray-500">TEL: {settings.issuerPhone}</p>
               )}
               {settings.issuerEmail && (
                 <p className="text-gray-500">{settings.issuerEmail}</p>
@@ -213,10 +234,10 @@ export default function EstimatePreviewPage() {
           </table>
 
           {/* 備考 */}
-          {(estimate.note || settings.documentNote) && (
+          {(estimate.note || settings.estimateNote) && (
             <div className="mb-8">
               <p className="text-xs font-semibold text-gray-500 mb-2 border-b border-gray-200 pb-1">備考</p>
-              <p className="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">{estimate.note || settings.documentNote}</p>
+              <p className="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">{estimate.note || settings.estimateNote}</p>
             </div>
           )}
 
