@@ -1785,13 +1785,30 @@ export default function ProjectDetail() {
 
               {/* ═══ 中央：変換アロー ═══ */}
               <div className="flex md:flex-col items-center justify-center py-3 md:py-0 md:pt-16">
-                <div className="w-10 h-10 rounded-full bg-emerald-500 flex items-center justify-center shadow-lg shadow-emerald-200">
-                  <ArrowRight className="w-5 h-5 text-white rotate-90 md:rotate-0" />
-                </div>
-                <span className="text-[10px] text-gray-400 font-medium ml-2 md:ml-0 md:mt-2 text-center leading-tight">
-                  <span className="md:hidden">変換</span>
-                  <span className="hidden md:block">1クリック<br/>で変換</span>
-                </span>
+                {primaryEstimate?.status === 'approved' && !primaryAlreadyInvoiced ? (
+                  <button
+                    onClick={() => setEstimateToInvoiceTarget(primaryEstimate)}
+                    className="group flex flex-col items-center gap-1"
+                  >
+                    <div className="w-10 h-10 rounded-full bg-emerald-500 flex items-center justify-center shadow-lg shadow-emerald-200 group-hover:bg-emerald-600 group-hover:scale-110 transition-all">
+                      <ArrowRight className="w-5 h-5 text-white rotate-90 md:rotate-0" />
+                    </div>
+                    <span className="text-[10px] text-emerald-500 font-semibold ml-2 md:ml-0 text-center leading-tight group-hover:text-emerald-600">
+                      <span className="md:hidden">変換</span>
+                      <span className="hidden md:block">1クリック<br/>で変換</span>
+                    </span>
+                  </button>
+                ) : (
+                  <div className="flex md:flex-col items-center">
+                    <div className="w-10 h-10 rounded-full bg-gray-300 flex items-center justify-center">
+                      <ArrowRight className="w-5 h-5 text-white rotate-90 md:rotate-0" />
+                    </div>
+                    <span className="text-[10px] text-gray-400 font-medium ml-2 md:ml-0 md:mt-2 text-center leading-tight">
+                      <span className="md:hidden">変換</span>
+                      <span className="hidden md:block">1クリック<br/>で変換</span>
+                    </span>
+                  </div>
+                )}
               </div>
 
               {/* ═══ 右：請求書ドキュメントカード ═══ */}
