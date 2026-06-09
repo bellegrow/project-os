@@ -75,7 +75,7 @@ export default function SearchCommand() {
   const [query, setQuery] = useState('')
   const [results, setResults] = useState<SearchResult[]>([])
   const [loading, setLoading] = useState(false)
-  const [selectedIndex, setSelectedIndex] = useState(0)
+  const [selectedIndex, setSelectedIndex] = useState(-1)
 
   const inputRef = useRef<HTMLInputElement>(null)
   const selectedItemRef = useRef<HTMLButtonElement>(null)
@@ -92,7 +92,7 @@ export default function SearchCommand() {
     } else {
       setQuery('')
       setResults([])
-      setSelectedIndex(0)
+      setSelectedIndex(-1)
       if (debounceRef.current) clearTimeout(debounceRef.current)
     }
   }, [open])
@@ -124,7 +124,7 @@ export default function SearchCommand() {
     try {
       const res = await searchAll(q.trim())
       setResults(res.slice(0, MAX_RESULTS))
-      setSelectedIndex(0)
+      setSelectedIndex(-1)
     } finally {
       setLoading(false)
     }
@@ -147,12 +147,15 @@ export default function SearchCommand() {
         break
       case 'ArrowUp':
         e.preventDefault()
-        setSelectedIndex((i) => Math.max(i - 1, 0))
+        setSelectedIndex((i) => Math.max(i - 1, -1))
         break
       case 'Enter':
         e.preventDefault()
-        if (results[selectedIndex]) {
+        if (selectedIndex >= 0 && results[selectedIndex]) {
           router.push(results[selectedIndex].href)
+          close()
+        } else if (query.trim()) {
+          router.push(`/search?q=${encodeURIComponent(query.trim())}`)
           close()
         }
         break
