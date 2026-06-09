@@ -283,6 +283,12 @@ export function getInvoice(id: string): Invoice | undefined {
   return getAll<Invoice>(KEYS.INVOICES).find((i) => i.id === id)
 }
 
+export function seedInvoice(invoice: Invoice): void {
+  const all = getAll<Invoice>(KEYS.INVOICES)
+  if (all.find((i) => i.id === invoice.id)) return
+  saveAll(KEYS.INVOICES, [...all, invoice])
+}
+
 export function createInvoice(input: InvoiceInput): Invoice {
   const now = new Date().toISOString()
   const id = crypto.randomUUID()
@@ -397,6 +403,12 @@ export function getContracts(projectId: string): Contract[] {
 
 export function getContract(id: string): Contract | undefined {
   return getAll<Contract>(KEYS.CONTRACTS).find((c) => c.id === id)
+}
+
+export function seedContract(contract: Contract): void {
+  const all = getAll<Contract>(KEYS.CONTRACTS)
+  if (all.find((c) => c.id === contract.id)) return
+  saveAll(KEYS.CONTRACTS, [...all, contract])
 }
 
 export function createContract(input: ContractInput): Contract {

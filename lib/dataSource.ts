@@ -288,22 +288,44 @@ export async function updateInvoice(
   input: Partial<InvoiceInput>
 ): Promise<Invoice | undefined> {
   if (await isCloudMode()) return sbInvoices.updateInvoice(id, input)
-  return storage.updateInvoice(id, input)
+  const result = storage.updateInvoice(id, input)
+  if (result) return result
+  if (id.startsWith('demo-')) {
+    const demo = demoInvoices.find(i => i.id === id)
+    if (demo) { storage.seedInvoice(demo); return storage.updateInvoice(id, input) }
+  }
+  return undefined
 }
 
 export async function updateInvoiceStatus(id: string, status: InvoiceStatus): Promise<void> {
   if (await isCloudMode()) return sbInvoices.updateInvoiceStatus(id, status)
+  if (id.startsWith('demo-') && !storage.getInvoice(id)) {
+    const demo = demoInvoices.find(i => i.id === id)
+    if (demo) storage.seedInvoice(demo)
+  }
   storage.updateInvoiceStatus(id, status)
 }
 
 export async function recordPayment(id: string, input: PaymentInput): Promise<Invoice | undefined> {
   if (await isCloudMode()) return sbInvoices.recordPayment(id, input)
-  return storage.recordPayment(id, input)
+  const result = storage.recordPayment(id, input)
+  if (result) return result
+  if (id.startsWith('demo-')) {
+    const demo = demoInvoices.find(i => i.id === id)
+    if (demo) { storage.seedInvoice(demo); return storage.recordPayment(id, input) }
+  }
+  return undefined
 }
 
 export async function cancelPayment(id: string): Promise<Invoice | undefined> {
   if (await isCloudMode()) return sbInvoices.cancelPayment(id)
-  return storage.cancelPayment(id)
+  const result = storage.cancelPayment(id)
+  if (result) return result
+  if (id.startsWith('demo-')) {
+    const demo = demoInvoices.find(i => i.id === id)
+    if (demo) { storage.seedInvoice(demo); return storage.cancelPayment(id) }
+  }
+  return undefined
 }
 
 export async function deleteInvoice(id: string): Promise<void> {
@@ -343,11 +365,21 @@ export async function updateContract(
   input: Partial<ContractInput>
 ): Promise<Contract | undefined> {
   if (await isCloudMode()) return sbContracts.updateContract(id, input)
-  return storage.updateContract(id, input)
+  const result = storage.updateContract(id, input)
+  if (result) return result
+  if (id.startsWith('demo-')) {
+    const demo = demoContracts.find(c => c.id === id)
+    if (demo) { storage.seedContract(demo); return storage.updateContract(id, input) }
+  }
+  return undefined
 }
 
 export async function updateContractStatus(id: string, status: ContractStatus): Promise<void> {
   if (await isCloudMode()) return sbContracts.updateContractStatus(id, status)
+  if (id.startsWith('demo-') && !storage.getContract(id)) {
+    const demo = demoContracts.find(c => c.id === id)
+    if (demo) storage.seedContract(demo)
+  }
   storage.updateContractStatus(id, status)
 }
 
