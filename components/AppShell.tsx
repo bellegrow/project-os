@@ -2,11 +2,11 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import {
   LayoutDashboard, Users, Briefcase, ListTodo, MessageSquare,
   FileText, ScrollText, TrendingUp, FolderOpen, Settings, Search,
-  ChevronLeft, ChevronRight,
+  ChevronLeft, ChevronRight, LogOut,
 } from 'lucide-react'
 import AppNavTabs from './AppNavTabs'
 import StorageModeBadge from './StorageModeBadge'
@@ -61,15 +61,39 @@ const SIDEBAR_W_CLOSED =  64
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const pathname   = usePathname()
+  const router     = useRouter()
   const activeKey  = getActiveKey(pathname)
   const mobileTab  = getMobileTab(pathname)
-  const [collapsed, setCollapsed] = useState(false)
+  const [collapsed,   setCollapsed]   = useState(false)
+  const [isLoggedIn,  setIsLoggedIn]  = useState(false)
 
   useEffect(() => {
     try {
       if (localStorage.getItem(COLLAPSE_KEY) === 'true') setCollapsed(true)
     } catch {}
   }, [])
+
+  useEffect(() => {
+    if (!process.env.NEXT_PUBLIC_SUPABASE_URL) return
+    import('@/lib/supabase/client').then(({ createClient }) => {
+      const supabase = createClient()
+      supabase.auth.getSession().then(({ data: { session } }) => {
+        setIsLoggedIn(!!session)
+      })
+      const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, session) => {
+        setIsLoggedIn(!!session)
+      })
+      return () => subscription.unsubscribe()
+    })
+  }, [])
+
+  const handleLogout = async () => {
+    if (!process.env.NEXT_PUBLIC_SUPABASE_URL) return
+    const { createClient } = await import('@/lib/supabase/client')
+    const supabase = createClient()
+    await supabase.auth.signOut()
+    router.replace('/login')
+  }
 
   const toggle = () => {
     setCollapsed(prev => {
@@ -158,6 +182,18 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
             <Settings className={iconCls('settings')} />
             {!collapsed && '設定'}
           </Link>
+          {isLoggedIn && (
+            <button
+              onClick={handleLogout}
+              className={`flex items-center rounded-lg text-sm transition-colors text-gray-500 hover:bg-gray-50 hover:text-red-600 font-medium ${
+                collapsed ? 'justify-center px-0 py-2.5' : 'gap-3 px-3 py-2'
+              }`}
+              title={collapsed ? 'ログアウト' : undefined}
+            >
+              <LogOut className={`shrink-0 ${collapsed ? 'w-5 h-5' : 'w-[15px] h-[15px]'}`} />
+              {!collapsed && 'ログアウト'}
+            </button>
+          )}
           {!collapsed && (
             <div className="px-3 pt-2">
               <StorageModeBadge />

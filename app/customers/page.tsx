@@ -79,7 +79,7 @@ export default function CustomersPage() {
         {isDemo && (
           <div className="bg-blue-50 border border-blue-200 rounded-xl px-4 py-2.5 flex items-center gap-2 mb-4">
             <span className="text-xs text-blue-700 font-medium">デモデータを表示中</span>
-            <span className="text-xs text-blue-500">— ログインすると顧客を登録・管理できます</span>
+            <span className="text-xs text-blue-500">— クラウドモードで顧客を登録・管理できます</span>
           </div>
         )}
 

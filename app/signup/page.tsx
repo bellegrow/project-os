@@ -1,53 +1,58 @@
 'use client'
 
-import { useState, useEffect, Suspense } from 'react'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useState, Suspense } from 'react'
+import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { Loader2, Eye, EyeOff } from 'lucide-react'
+import { Loader2, Eye, EyeOff, Mail } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 
 const supabaseConfigured =
   !!process.env.NEXT_PUBLIC_SUPABASE_URL &&
   !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
-function LoginForm() {
-  const router  = useRouter()
-  const params  = useSearchParams()
-  const next    = params.get('next') || '/dashboard'
+function SignupForm() {
+  const router = useRouter()
 
   const [email,    setEmail]    = useState('')
   const [password, setPassword] = useState('')
   const [showPw,   setShowPw]   = useState(false)
   const [loading,  setLoading]  = useState(false)
   const [error,    setError]    = useState('')
-
-  // 既にログイン済みなら即リダイレクト
-  useEffect(() => {
-    const supabase = createClient()
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) router.replace(next)
-    })
-  }, [next, router])
+  const [done,     setDone]     = useState(false)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!email.trim() || !password) return
+    if (password.length < 6) {
+      setError('パスワードは6文字以上で入力してください')
+      return
+    }
     setLoading(true)
     setError('')
     try {
       const supabase = createClient()
-      const { error: authError } = await supabase.auth.signInWithPassword({
+      const { data, error: authError } = await supabase.auth.signUp({
         email: email.trim(),
         password,
+        options: {
+          emailRedirectTo: `${window.location.origin}/auth/callback`,
+        },
       })
       if (authError) throw authError
-      router.replace(next)
+
+      // メール確認不要の場合（auto-confirm）はセッションが即生成される
+      if (data.session) {
+        router.replace('/dashboard')
+      } else {
+        // メール確認が必要
+        setDone(true)
+      }
     } catch (err) {
-      const msg = err instanceof Error ? err.message : 'ログインに失敗しました'
-      if (msg.includes('Invalid login credentials')) {
-        setError('メールアドレスまたはパスワードが正しくありません')
-      } else if (msg.includes('Email not confirmed')) {
-        setError('メールアドレスの確認が完了していません。受信トレイをご確認ください。')
+      const msg = err instanceof Error ? err.message : 'アカウント作成に失敗しました'
+      if (msg.includes('already registered') || msg.includes('User already registered')) {
+        setError('このメールアドレスはすでに登録されています。ログインしてください。')
+      } else if (msg.includes('Password should be')) {
+        setError('パスワードは6文字以上で入力してください')
       } else {
         setError(msg)
       }
@@ -56,11 +61,32 @@ function LoginForm() {
     }
   }
 
+  if (done) {
+    return (
+      <div className="text-center py-4">
+        <div className="w-12 h-12 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-4">
+          <Mail className="w-6 h-6 text-blue-500" />
+        </div>
+        <p className="text-sm font-medium text-gray-900 mb-2">確認メールを送信しました</p>
+        <p className="text-xs text-gray-500 leading-relaxed">
+          <span className="font-medium">{email}</span> に確認メールを送りました。
+          メール内のリンクをクリックしてアカウントを有効化してください。
+        </p>
+        <Link
+          href="/login"
+          className="mt-5 inline-block text-xs text-blue-600 hover:text-blue-800 font-medium"
+        >
+          ログインページへ
+        </Link>
+      </div>
+    )
+  }
+
   return (
     <>
-      <h2 className="text-sm font-semibold text-gray-900 mb-1">ログイン</h2>
+      <h2 className="text-sm font-semibold text-gray-900 mb-1">新規登録</h2>
       <p className="text-xs text-gray-500 mb-5">
-        メールアドレスとパスワードを入力してください。
+        メールアドレスとパスワードを設定してください。
       </p>
 
       <form onSubmit={handleSubmit} className="space-y-4">
@@ -83,6 +109,7 @@ function LoginForm() {
         <div>
           <label className="block text-xs font-medium text-gray-700 mb-1.5">
             パスワード
+            <span className="text-gray-400 font-normal ml-1">（6文字以上）</span>
           </label>
           <div className="relative">
             <input
@@ -91,7 +118,7 @@ function LoginForm() {
               onChange={(e) => setPassword(e.target.value)}
               placeholder="••••••••"
               required
-              autoComplete="current-password"
+              autoComplete="new-password"
               className="w-full border border-gray-200 rounded-lg px-3 py-2 pr-9 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             />
             <button
@@ -119,17 +146,17 @@ function LoginForm() {
           {loading ? (
             <>
               <Loader2 className="w-4 h-4 animate-spin" />
-              ログイン中...
+              作成中...
             </>
-          ) : 'ログイン'}
+          ) : 'アカウントを作成'}
         </button>
       </form>
 
       <div className="mt-5 pt-4 border-t border-gray-100 text-center">
         <p className="text-xs text-gray-400">
-          アカウントをお持ちでない方は{' '}
-          <Link href="/signup" className="text-blue-600 hover:text-blue-800 font-medium">
-            新規登録
+          すでにアカウントをお持ちの方は{' '}
+          <Link href="/login" className="text-blue-600 hover:text-blue-800 font-medium">
+            ログイン
           </Link>
         </p>
       </div>
@@ -137,7 +164,7 @@ function LoginForm() {
   )
 }
 
-export default function LoginPage() {
+export default function SignupPage() {
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
       <div className="w-full max-w-sm">
@@ -164,7 +191,7 @@ export default function LoginPage() {
                 <Loader2 className="w-5 h-5 animate-spin text-gray-300" />
               </div>
             }>
-              <LoginForm />
+              <SignupForm />
             </Suspense>
           )}
         </div>
