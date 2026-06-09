@@ -15,6 +15,8 @@ interface Props {
   customerId?: string
   taxRate?: number
   invoiceDueDays?: number
+  initialPct?: PctOption
+  initialCustomPct?: number
   onClose: () => void
   onSaved: (invoice: Invoice) => void
   onActivityCreated: () => void
@@ -42,11 +44,16 @@ function getMultiplier(key: PctOption, customPct: number): number {
 
 export default function EstimateToInvoiceModal({
   estimate, projectId, customerId, taxRate, invoiceDueDays,
+  initialPct, initialCustomPct,
   onClose, onSaved, onActivityCreated,
 }: Props) {
-  const [selectedPct, setSelectedPct] = useState<PctOption>('100')
-  const [customPct, setCustomPct]     = useState(50)
-  const [customTitle, setCustomTitle] = useState(`${estimate.title} 請求書`)
+  const initPct    = initialPct ?? '100'
+  const initCstPct = initialCustomPct ?? 50
+  const [selectedPct, setSelectedPct] = useState<PctOption>(initPct)
+  const [customPct, setCustomPct]     = useState(initCstPct)
+  const [customTitle, setCustomTitle] = useState(
+    `${estimate.title} 請求書${getTitleSuffix(initPct, initCstPct)}`
+  )
   const [submitting, setSubmitting]   = useState(false)
   const [saveError, setSaveError]     = useState('')
 

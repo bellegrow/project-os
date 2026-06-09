@@ -115,7 +115,9 @@ export default function ProjectDetail() {
   const [showInvoiceModal, setShowInvoiceModal] = useState(false)
   const [editingInvoice, setEditingInvoice] = useState<Invoice | null>(null)
   const [creatingFromEstimate, setCreatingFromEstimate] = useState<Estimate | null>(null)
-  const [estimateToInvoiceTarget, setEstimateToInvoiceTarget] = useState<Estimate | null>(null)
+  const [estimateToInvoiceTarget, setEstimateToInvoiceTarget] = useState<{
+    estimate: Estimate; initialPct?: '100' | '50-deposit' | '50-final' | 'custom'; initialCustomPct?: number
+  } | null>(null)
   const [contracts, setContracts] = useState<Contract[]>([])
   const [showContractModal, setShowContractModal] = useState(false)
   const [editingContract, setEditingContract] = useState<Contract | null>(null)
@@ -524,6 +526,16 @@ export default function ProjectDetail() {
     ? invoices.some(i => i.estimateId === primaryEstimate.id)
     : false
 
+  // 見積書ごとの請求済み小計と残り割合を返す
+  const getInvoicedSubtotal = (est: Estimate) =>
+    invoices.filter(i => i.estimateId === est.id).reduce((s, i) => s + i.subtotal, 0)
+  const getRemainingPct = (est: Estimate): number => {
+    if (est.subtotal <= 0) return 0
+    return Math.max(0, Math.round(((est.subtotal - getInvoicedSubtotal(est)) / est.subtotal) * 100))
+  }
+  const getRemainingPctOption = (pct: number): { pct: '50-final' | 'custom'; customPct: number } =>
+    pct === 50 ? { pct: '50-final', customPct: 50 } : { pct: 'custom', customPct: pct }
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* ========== HEADER ========== */}
@@ -797,7 +809,7 @@ export default function ProjectDetail() {
                             </div>
                           ) : (
                             <button
-                              onClick={() => setEstimateToInvoiceTarget(est)}
+                              onClick={() => setEstimateToInvoiceTarget({ estimate: est })}
                               className="mt-1.5 text-xs text-emerald-600 hover:text-emerald-700 font-medium flex items-center gap-1"
                             >
                               <FilePlus className="w-3 h-3" />
@@ -1717,20 +1729,38 @@ export default function ProjectDetail() {
                     {/* CTA */}
                     {primaryEstimate.status === 'approved' && (
                       <div className="px-4 pb-4">
-                        {primaryAlreadyInvoiced ? (
-                          <div className="flex items-center gap-1.5 text-xs font-semibold text-emerald-600 py-1">
-                            <Check className="w-3.5 h-3.5" />
-                            請求書作成済み
-                          </div>
-                        ) : (
-                          <button
-                            onClick={() => setEstimateToInvoiceTarget(primaryEstimate)}
-                            className="w-full flex items-center justify-center gap-2 py-2.5 text-sm font-bold text-white bg-emerald-600 rounded-xl hover:bg-emerald-700 active:bg-emerald-800 transition-colors shadow-sm shadow-emerald-200"
-                          >
-                            <FilePlus className="w-4 h-4" />
-                            この見積から請求書を作成
-                          </button>
-                        )}
+                        {(() => {
+                          const remPct = getRemainingPct(primaryEstimate)
+                          if (!primaryAlreadyInvoiced) {
+                            return (
+                              <button
+                                onClick={() => setEstimateToInvoiceTarget({ estimate: primaryEstimate })}
+                                className="w-full flex items-center justify-center gap-2 py-2.5 text-sm font-bold text-white bg-emerald-600 rounded-xl hover:bg-emerald-700 active:bg-emerald-800 transition-colors shadow-sm shadow-emerald-200"
+                              >
+                                <FilePlus className="w-4 h-4" />
+                                この見積から請求書を作成
+                              </button>
+                            )
+                          }
+                          if (remPct > 0) {
+                            const { pct, customPct } = getRemainingPctOption(remPct)
+                            return (
+                              <button
+                                onClick={() => setEstimateToInvoiceTarget({ estimate: primaryEstimate, initialPct: pct, initialCustomPct: customPct })}
+                                className="w-full flex items-center justify-center gap-2 py-2.5 text-sm font-bold text-white bg-violet-600 rounded-xl hover:bg-violet-700 active:bg-violet-800 transition-colors shadow-sm shadow-violet-200"
+                              >
+                                <FilePlus className="w-4 h-4" />
+                                残り{remPct}%の請求書を作成
+                              </button>
+                            )
+                          }
+                          return (
+                            <div className="flex items-center gap-1.5 text-xs font-semibold text-emerald-600 py-1">
+                              <Check className="w-3.5 h-3.5" />
+                              全額請求済み
+                            </div>
+                          )
+                        })()}
                       </div>
                     )}
                   </div>
@@ -1740,17 +1770,25 @@ export default function ProjectDetail() {
                 {estimates.length > 1 && (
                   <div className="mt-2 space-y-1">
                     {estimates.slice(1).map((est) => {
-                      const ai = invoices.some(i => i.estimateId === est.id)
+                      const remPct = getRemainingPct(est)
                       return (
                         <div key={est.id} className="flex items-center gap-2 px-3 py-2 bg-white border border-gray-200 rounded-xl">
                           <EstimateStatusBadge status={est.status} />
                           <span className="text-xs text-gray-600 truncate flex-1">{est.title}</span>
                           <span className="text-xs font-medium text-gray-700 shrink-0 tabular-nums">{formatCurrency(est.total)}</span>
-                          {est.status === 'approved' && !ai && (
+                          {est.status === 'approved' && remPct > 0 && (
                             <button
-                              onClick={() => setEstimateToInvoiceTarget(est)}
+                              onClick={() => {
+                                const hasAny = invoices.some(i => i.estimateId === est.id)
+                                if (hasAny) {
+                                  const { pct, customPct } = getRemainingPctOption(remPct)
+                                  setEstimateToInvoiceTarget({ estimate: est, initialPct: pct, initialCustomPct: customPct })
+                                } else {
+                                  setEstimateToInvoiceTarget({ estimate: est })
+                                }
+                              }}
                               className="p-1 rounded hover:bg-emerald-50 text-gray-400 hover:text-emerald-600 transition-colors"
-                              title="請求書を作成"
+                              title={invoices.some(i => i.estimateId === est.id) ? `残り${remPct}%の請求書を作成` : '請求書を作成'}
                             >
                               <FilePlus className="w-3.5 h-3.5" />
                             </button>
@@ -1785,20 +1823,40 @@ export default function ProjectDetail() {
 
               {/* ═══ 中央：変換アロー ═══ */}
               <div className="flex md:flex-col items-center justify-center py-3 md:py-0 md:pt-16">
-                {primaryEstimate?.status === 'approved' && !primaryAlreadyInvoiced ? (
-                  <button
-                    onClick={() => setEstimateToInvoiceTarget(primaryEstimate)}
-                    className="group flex flex-col items-center gap-1"
-                  >
-                    <div className="w-10 h-10 rounded-full bg-emerald-500 flex items-center justify-center shadow-lg shadow-emerald-200 group-hover:bg-emerald-600 group-hover:scale-110 transition-all">
-                      <ArrowRight className="w-5 h-5 text-white rotate-90 md:rotate-0" />
+                {primaryEstimate?.status === 'approved' && primaryEstimate && (() => {
+                  const remPct = getRemainingPct(primaryEstimate)
+                  if (remPct === 0) return (
+                    <div className="flex md:flex-col items-center">
+                      <div className="w-10 h-10 rounded-full bg-gray-300 flex items-center justify-center">
+                        <ArrowRight className="w-5 h-5 text-white rotate-90 md:rotate-0" />
+                      </div>
+                      <span className="text-[10px] text-gray-400 font-medium ml-2 md:ml-0 md:mt-2 text-center leading-tight">
+                        全額済み
+                      </span>
                     </div>
-                    <span className="text-[10px] text-emerald-500 font-semibold ml-2 md:ml-0 text-center leading-tight group-hover:text-emerald-600">
-                      <span className="md:hidden">変換</span>
-                      <span className="hidden md:block">1クリック<br/>で変換</span>
-                    </span>
-                  </button>
-                ) : (
+                  )
+                  const isResidual = primaryAlreadyInvoiced
+                  const { pct, customPct } = isResidual ? getRemainingPctOption(remPct) : { pct: undefined, customPct: undefined }
+                  return (
+                    <button
+                      onClick={() => setEstimateToInvoiceTarget(
+                        isResidual
+                          ? { estimate: primaryEstimate, initialPct: pct, initialCustomPct: customPct }
+                          : { estimate: primaryEstimate }
+                      )}
+                      className="group flex flex-col items-center gap-1"
+                    >
+                      <div className={`w-10 h-10 rounded-full flex items-center justify-center shadow-lg group-hover:scale-110 transition-all ${isResidual ? 'bg-violet-500 shadow-violet-200 group-hover:bg-violet-600' : 'bg-emerald-500 shadow-emerald-200 group-hover:bg-emerald-600'}`}>
+                        <ArrowRight className="w-5 h-5 text-white rotate-90 md:rotate-0" />
+                      </div>
+                      <span className={`text-[10px] font-semibold ml-2 md:ml-0 text-center leading-tight ${isResidual ? 'text-violet-500 group-hover:text-violet-600' : 'text-emerald-500 group-hover:text-emerald-600'}`}>
+                        <span className="md:hidden">変換</span>
+                        <span className="hidden md:block">{isResidual ? `残り${remPct}%` : '1クリック'}<br/>で変換</span>
+                      </span>
+                    </button>
+                  )
+                })()}
+                {(!primaryEstimate || primaryEstimate.status !== 'approved') && (
                   <div className="flex md:flex-col items-center">
                     <div className="w-10 h-10 rounded-full bg-gray-300 flex items-center justify-center">
                       <ArrowRight className="w-5 h-5 text-white rotate-90 md:rotate-0" />
@@ -1842,7 +1900,7 @@ export default function ProjectDetail() {
                       <>
                         <p className="text-xs text-gray-400 mb-4">承認済みの見積書から作成できます</p>
                         <button
-                          onClick={() => setEstimateToInvoiceTarget(primaryEstimate)}
+                          onClick={() => setEstimateToInvoiceTarget({ estimate: primaryEstimate })}
                           className="flex items-center gap-1.5 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 px-4 py-2 rounded-lg transition-colors shadow-sm"
                         >
                           <FilePlus className="w-3.5 h-3.5" />
@@ -2446,11 +2504,13 @@ export default function ProjectDetail() {
 
       {estimateToInvoiceTarget && (
         <EstimateToInvoiceModal
-          estimate={estimateToInvoiceTarget}
+          estimate={estimateToInvoiceTarget.estimate}
           projectId={projectId}
           customerId={project.customerId}
           taxRate={docTaxRate}
           invoiceDueDays={docInvoiceDueDays}
+          initialPct={estimateToInvoiceTarget.initialPct}
+          initialCustomPct={estimateToInvoiceTarget.initialCustomPct}
           onClose={() => setEstimateToInvoiceTarget(null)}
           onSaved={handleEstimateToInvoiceSaved}
           onActivityCreated={() => setActivityRefreshKey((k) => k + 1)}
