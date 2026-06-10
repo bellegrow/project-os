@@ -143,7 +143,7 @@ export default function LoginPage() {
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
       <div className="w-full max-w-sm">
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-10 h-10 bg-blue-600 rounded-xl mb-3">
+          <div className="inline-flex items-center justify-center w-10 h-10 bg-gray-900 rounded-xl mb-3">
             <span className="text-white font-bold text-sm">P</span>
           </div>
           <h1 className="text-xl font-bold text-gray-900">ProjectOS</h1>
@@ -162,6 +162,7 @@ export default function LoginPage() {
           </div>
         )}
 
+        {(!IS_DEMO_MODE || supabaseConfigured) && (
         <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
           {!supabaseConfigured ? (
             <div className="text-center py-4">
@@ -181,6 +182,7 @@ export default function LoginPage() {
             </Suspense>
           )}
         </div>
+        )}
       </div>
     </div>
   )
