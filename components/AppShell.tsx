@@ -285,7 +285,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           className="hidden lg:flex fixed top-14 right-0 z-10 items-center justify-center gap-2 bg-amber-400 px-4 py-1.5 text-xs font-semibold text-amber-900"
         >
           🎯 これはデモ環境です。データはブラウザにのみ保存され、他のユーザーと共有されません。
-          <a href="https://project-os-t8g4.vercel.app/signup" className="underline hover:text-amber-700">本番環境はこちら →</a>
+          <a href="https://project-os-app.vercel.app/signup" className="underline hover:text-amber-700">本番環境はこちら →</a>
         </div>
       )}
 
