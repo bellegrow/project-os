@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { Loader2, Eye, EyeOff } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
+import { IS_DEMO_MODE } from '@/lib/demo'
 
 const supabaseConfigured =
   !!process.env.NEXT_PUBLIC_SUPABASE_URL &&
@@ -148,6 +149,18 @@ export default function LoginPage() {
           <h1 className="text-xl font-bold text-gray-900">ProjectOS</h1>
           <p className="text-xs text-gray-400 mt-1">情報を探す時間は、仕事じゃない。</p>
         </div>
+
+        {IS_DEMO_MODE && (
+          <div className="mb-4 bg-amber-50 border border-amber-200 rounded-2xl p-4 text-center">
+            <p className="text-xs font-semibold text-amber-800 mb-2">ログイン不要でお試しできます</p>
+            <Link
+              href="/dashboard"
+              className="inline-block w-full bg-amber-400 hover:bg-amber-500 text-amber-900 font-bold text-sm py-2.5 rounded-xl transition-colors"
+            >
+              デモを試す →
+            </Link>
+          </div>
+        )}
 
         <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
           {!supabaseConfigured ? (

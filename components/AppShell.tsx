@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
+import { IS_DEMO_MODE } from '@/lib/demo'
 import {
   LayoutDashboard, Users, Briefcase, ListTodo, MessageSquare,
   FileText, ScrollText, TrendingUp, FolderOpen, Settings, Search,
@@ -277,8 +278,19 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         </div>
       </header>
 
+      {/* ── デモバナー ──────────────────────────────────────────── */}
+      {IS_DEMO_MODE && (
+        <div
+          style={{ left: collapsed ? 64 : 260, transition: 'left 200ms ease-in-out' }}
+          className="hidden lg:flex fixed top-14 right-0 z-10 items-center justify-center gap-2 bg-amber-400 px-4 py-1.5 text-xs font-semibold text-amber-900"
+        >
+          🎯 これはデモ環境です。データはブラウザにのみ保存され、他のユーザーと共有されません。
+          <Link href="/signup" className="underline hover:text-amber-700">本番環境はこちら →</Link>
+        </div>
+      )}
+
       {/* ── コンテンツ（children は一度だけ） ───────────────────── */}
-      <div className={`lg:pt-14 ${collapsed ? 'lg:pl-16' : 'lg:pl-[260px]'}`}>
+      <div className={`${IS_DEMO_MODE ? 'lg:pt-[3.25rem]' : ''} lg:pt-14 ${collapsed ? 'lg:pl-16' : 'lg:pl-[260px]'}`}>
         {children}
       </div>
 

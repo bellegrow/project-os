@@ -12,6 +12,7 @@ import NewProjectModal from '@/components/NewProjectModal'
 import AppShell from '@/components/AppShell'
 import MigrationBanner from '@/components/MigrationBanner'
 import { demoProjects } from '@/lib/demoData'
+import { IS_DEMO_MODE } from '@/lib/demo'
 
 type StatusFilter = 'アクティブ' | 'すべて' | '商談中' | '提案済' | '受注' | '進行中' | '完了' | '失注'
 type SortOrder = '更新が新しい順' | '最終ヒアリングが古い順' | '放置日数が長い順'
@@ -135,7 +136,7 @@ export default function ProjectsPage() {
           const ps = await getProjects()
           setProjects(ps)
         }} />
-        {projects.length === 0 ? (
+        {projects.length === 0 && IS_DEMO_MODE ? (
           <>
             {/* デモ通知バナー */}
             <div className="bg-blue-50 border border-blue-200 rounded-xl px-4 py-2.5 flex items-center gap-2 mb-4">
@@ -152,6 +153,11 @@ export default function ProjectsPage() {
               ))}
             </div>
           </>
+        ) : projects.length === 0 ? (
+          <div className="text-center py-20 text-gray-400">
+            <p className="text-sm font-medium text-gray-500 mb-1">案件がありません</p>
+            <p className="text-xs">「新規案件」ボタンから最初の案件を作成しましょう</p>
+          </div>
         ) : (
           <>
             <div className="relative mb-2">

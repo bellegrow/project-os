@@ -12,6 +12,7 @@ import { Project, Invoice, ProjectStatus, Task, ProjectCost } from '@/lib/types'
 import ActivityFeed from '@/components/ActivityFeed'
 import ProjectStatusBadge from '@/components/ProjectStatusBadge'
 import { demoProjects, demoTasks, demoActivities, demoProjectMap, DEMO_KPI, DemoActivity } from '@/lib/demoData'
+import { IS_DEMO_MODE } from '@/lib/demo'
 
 const STATUS_CLS: Record<ProjectStatus, string> = {
   商談中: 'bg-amber-100 text-amber-700',
@@ -166,7 +167,7 @@ export default function DashboardPage() {
     .map(r => ({ project: r.project, reasons: r.reasons }))
 
   const hasFinancialData = projects.length > 0 || invoices.length > 0
-  const isDemo = projects.length === 0 && invoices.length === 0 && allCosts.length === 0
+  const isDemo = IS_DEMO_MODE && projects.length === 0 && invoices.length === 0 && allCosts.length === 0
 
   // ─── UI ───────────────────────────────────────────────────
 
