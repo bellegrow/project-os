@@ -20,7 +20,7 @@ function LoginForm() {
   const [password, setPassword] = useState('')
   const [showPw,   setShowPw]   = useState(false)
   const [loading,  setLoading]  = useState(false)
-  const [error,    setError]    = useState('')
+  const [error,    setError]    = useState(params.get('error') ?? '')
 
   // 既にログイン済みなら即リダイレクト
   useEffect(() => {
