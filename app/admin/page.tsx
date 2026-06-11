@@ -7,7 +7,7 @@ import {
   Users, CheckCircle2, Clock, XCircle, Loader2,
 } from 'lucide-react'
 import { Tenant, TenantInput, TenantStatus } from '@/lib/admin/types'
-import { getTenants, createTenant, updateTenantStatus, updateTenantInvited, updateTenantOrganization } from '@/lib/admin/storage'
+import { getTenants, createTenant, updateTenantStatus, updateTenantInvited } from '@/lib/admin/storage'
 import { isAdminEmail } from '@/lib/admin/guard'
 import NewTenantModal from '@/components/admin/NewTenantModal'
 
