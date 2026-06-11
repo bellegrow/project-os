@@ -59,31 +59,53 @@ export async function POST(request: NextRequest) {
     auth: { autoRefreshToken: false, persistSession: false },
   })
 
+  const normalizedEmail = email.trim().toLowerCase()
+
+  let invitedUserId: string | null = null
+
   const { data, error } = await supabaseAdmin.auth.admin.inviteUserByEmail(
-    email.trim().toLowerCase(),
+    normalizedEmail,
     { ...(redirectTo ? { redirectTo } : {}) }
   )
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 400 })
+    // すでに登録済みの場合は既存ユーザーを取得して続行
+    if (
+      error.message.includes('already been registered') ||
+      error.message.includes('already registered')
+    ) {
+      const { data: listData } = await supabaseAdmin.auth.admin.listUsers()
+      const existing = listData?.users?.find(u => u.email === normalizedEmail)
+      if (!existing) {
+        return NextResponse.json({ error: error.message }, { status: 400 })
+      }
+      invitedUserId = existing.id
+    } else {
+      return NextResponse.json({ error: error.message }, { status: 400 })
+    }
+  } else {
+    invitedUserId = data.user?.id ?? null
   }
 
-  const invitedUserId = data.user?.id ?? null
-
   // ── 6. 組織を作成して招待ユーザーを owner として追加 ───────────────
-  // TODO: v1.4.1 — 既存テナントの再招待（再送）時は組織作成をスキップする
   let organizationId: string | null = null
   if (invitedUserId) {
-    try {
-      const orgName = companyName?.trim() || email.trim().toLowerCase()
-      organizationId = await createOrganizationWithOwner(
-        supabaseAdmin,
-        orgName,
-        invitedUserId
-      )
-    } catch {
-      // 組織作成失敗は招待自体を巻き戻さない（ベストエフォート）
-      // TODO: v1.4.2 — トランザクション化 or 冪等な retry ロジックを追加
+    // 既存の組織があればスキップ
+    const { getMemberOrganizationId } = await import('@/lib/supabase/organizations')
+    const existingOrgId = await getMemberOrganizationId(supabaseAdmin, invitedUserId)
+    if (existingOrgId) {
+      organizationId = existingOrgId
+    } else {
+      try {
+        const orgName = companyName?.trim() || normalizedEmail
+        organizationId = await createOrganizationWithOwner(
+          supabaseAdmin,
+          orgName,
+          invitedUserId
+        )
+      } catch {
+        // 組織作成失敗は招待自体を巻き戻さない
+      }
     }
   }
 
