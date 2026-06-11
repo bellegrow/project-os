@@ -4,6 +4,7 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { MessageSquare, ArrowRight, CheckCircle2, AlertCircle, Clock } from 'lucide-react'
 import AppShell from '@/components/AppShell'
+import { IS_DEMO_MODE } from '@/lib/demo'
 
 type MeetingStatus = 'completed' | 'action_required' | 'in_progress'
 
@@ -111,6 +112,18 @@ export default function MeetingsPage() {
 
   const filtered = filter === 'all' ? DEMO_MEETINGS : DEMO_MEETINGS.filter(m => m.status === filter)
   const actionCount = DEMO_MEETINGS.filter(m => m.status === 'action_required').length
+
+  if (!IS_DEMO_MODE) return (
+    <AppShell>
+      <main className="max-w-7xl mx-auto px-4 py-6 lg:px-8">
+        <h2 className="text-base font-semibold text-gray-900 mb-4">打ち合わせ</h2>
+        <div className="text-center py-20 text-gray-400">
+          <p className="text-sm font-medium text-gray-500 mb-1">打ち合わせがありません</p>
+          <p className="text-xs">案件ページから打ち合わせを記録できます</p>
+        </div>
+      </main>
+    </AppShell>
+  )
 
   return (
     <AppShell>

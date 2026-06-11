@@ -9,6 +9,7 @@ import { formatYMD } from '@/lib/utils'
 import AppShell from '@/components/AppShell'
 import TaskModal from '@/components/TaskModal'
 import { demoTasks, demoProjects } from '@/lib/demoData'
+import { IS_DEMO_MODE } from '@/lib/demo'
 
 // ── 定数 ────────────────────────────────────────────────────────────────────
 
@@ -169,7 +170,7 @@ export default function TasksPage() {
     })
   }, [])
 
-  const isDemo = mounted && tasks.length === 0
+  const isDemo = IS_DEMO_MODE && mounted && tasks.length === 0
 
   const sourceTasks    = isDemo ? demoTasks    : tasks
   const sourceProjects = isDemo ? demoProjects : projects

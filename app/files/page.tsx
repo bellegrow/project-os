@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { FolderOpen, Search, FileText, Archive, FileCode, File } from 'lucide-react'
 import AppShell from '@/components/AppShell'
+import { IS_DEMO_MODE } from '@/lib/demo'
 
 type FileType = 'pdf' | 'zip' | 'figma' | 'doc' | 'image'
 
@@ -57,6 +58,18 @@ function formatDate(d: string) {
 
 export default function FilesPage() {
   const [query, setQuery] = useState('')
+
+  if (!IS_DEMO_MODE) return (
+    <AppShell>
+      <main className="max-w-7xl mx-auto px-4 py-6 lg:px-8">
+        <h2 className="text-base font-semibold text-gray-900 mb-4">ファイル管理</h2>
+        <div className="text-center py-20 text-gray-400">
+          <p className="text-sm font-medium text-gray-500 mb-1">ファイルがありません</p>
+          <p className="text-xs">案件ページからファイルを添付できます</p>
+        </div>
+      </main>
+    </AppShell>
+  )
 
   const filtered = query.trim()
     ? DEMO_FILES.filter(f =>

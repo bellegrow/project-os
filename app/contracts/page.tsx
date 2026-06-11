@@ -2,6 +2,7 @@
 
 import { ScrollText, CheckCircle2, Send, FileEdit } from 'lucide-react'
 import AppShell from '@/components/AppShell'
+import { IS_DEMO_MODE } from '@/lib/demo'
 
 type ContractStatus = 'draft' | 'sent' | 'signed'
 
@@ -38,6 +39,18 @@ export default function ContractsPage() {
   const signedCount = DEMO_CONTRACTS.filter(c => c.status === 'signed').length
   const sentCount   = DEMO_CONTRACTS.filter(c => c.status === 'sent').length
   const draftCount  = DEMO_CONTRACTS.filter(c => c.status === 'draft').length
+
+  if (!IS_DEMO_MODE) return (
+    <AppShell>
+      <main className="max-w-7xl mx-auto px-4 py-6 lg:px-8">
+        <h2 className="text-base font-semibold text-gray-900 mb-4">契約書</h2>
+        <div className="text-center py-20 text-gray-400">
+          <p className="text-sm font-medium text-gray-500 mb-1">契約書がありません</p>
+          <p className="text-xs">案件ページから契約書を作成できます</p>
+        </div>
+      </main>
+    </AppShell>
+  )
 
   return (
     <AppShell>

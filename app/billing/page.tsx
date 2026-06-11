@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { FileText, AlertCircle } from 'lucide-react'
 import AppShell from '@/components/AppShell'
+import { IS_DEMO_MODE } from '@/lib/demo'
 
 type InvoiceStatus = 'draft' | 'sent' | 'paid' | 'overdue' | 'accepted'
 type Tab = 'invoices' | 'estimates'
@@ -55,6 +56,18 @@ function formatDate(d: string) {
 
 export default function BillingPage() {
   const [tab, setTab] = useState<Tab>('invoices')
+
+  if (!IS_DEMO_MODE) return (
+    <AppShell>
+      <main className="max-w-7xl mx-auto px-4 py-6 lg:px-8">
+        <h2 className="text-base font-semibold text-gray-900 mb-4">見積・請求</h2>
+        <div className="text-center py-20 text-gray-400">
+          <p className="text-sm font-medium text-gray-500 mb-1">請求データがありません</p>
+          <p className="text-xs">案件ページから見積書・請求書を作成できます</p>
+        </div>
+      </main>
+    </AppShell>
+  )
 
   const sentAmount = DEMO_INVOICES.filter(i => i.status === 'sent').reduce((s, i) => s + i.amount, 0)
   const paidAmount = DEMO_INVOICES.filter(i => i.status === 'paid').reduce((s, i) => s + i.amount, 0)

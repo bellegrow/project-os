@@ -2,6 +2,7 @@
 
 import { TrendingUp, TrendingDown } from 'lucide-react'
 import AppShell from '@/components/AppShell'
+import { IS_DEMO_MODE } from '@/lib/demo'
 
 const SUMMARY = {
   revenue:     1250000,
@@ -27,6 +28,18 @@ const COST_CATEGORIES = [
 function fmt(n: number) { return '¥' + n.toLocaleString() }
 
 export default function FinancePage() {
+  if (!IS_DEMO_MODE) return (
+    <AppShell>
+      <main className="max-w-7xl mx-auto px-4 py-6 lg:px-8">
+        <h2 className="text-base font-semibold text-gray-900 mb-4">利益管理</h2>
+        <div className="text-center py-20 text-gray-400">
+          <p className="text-sm font-medium text-gray-500 mb-1">データがありません</p>
+          <p className="text-xs">案件ページからコストを入力すると利益が集計されます</p>
+        </div>
+      </main>
+    </AppShell>
+  )
+
   return (
     <AppShell>
       <main className="max-w-7xl mx-auto px-4 py-6 lg:px-8 space-y-6">

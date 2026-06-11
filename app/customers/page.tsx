@@ -9,6 +9,7 @@ import { useCloudMode } from '@/lib/hooks/useCloudMode'
 import AppShell from '@/components/AppShell'
 import NewCustomerModal from '@/components/NewCustomerModal'
 import { demoCustomers, demoProjects } from '@/lib/demoData'
+import { IS_DEMO_MODE } from '@/lib/demo'
 
 export default function CustomersPage() {
   const router  = useRouter()
@@ -44,7 +45,7 @@ export default function CustomersPage() {
   if (!mounted) return null
 
   // デモ: 顧客 0件 or ローカルモード
-  const isDemo     = customers.length === 0
+  const isDemo     = IS_DEMO_MODE && customers.length === 0
   const dispCustomers = isDemo ? demoCustomers : customers
 
   // デモ用案件カウント（demoProjects から集計）
