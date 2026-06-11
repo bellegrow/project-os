@@ -49,6 +49,8 @@ function LoginForm() {
         setError('メールアドレスまたはパスワードが正しくありません')
       } else if (msg.includes('Email not confirmed')) {
         setError('メールアドレスの確認が完了していません。受信トレイをご確認ください。')
+      } else if (msg.includes('banned') || msg.includes('User is banned')) {
+        setError('このアカウントは現在ご利用いただけません。管理者にお問い合わせください。')
       } else {
         setError(msg)
       }

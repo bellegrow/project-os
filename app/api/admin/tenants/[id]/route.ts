@@ -51,12 +51,30 @@ export async function PATCH(
   if (body.authUserId     !== undefined) updates.auth_user_id    = body.authUserId
   if (body.organizationId !== undefined) updates.organization_id = body.organizationId
 
-  const { error } = await serviceClient()
+  const admin = serviceClient()
+
+  const { error } = await admin
     .from('tenants')
     .update(updates)
     .eq('id', id)
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+
+  // Sync ban status with Supabase Auth when status changes
+  if (body.status === '停止中' || body.status === '利用中') {
+    const { data: tenant } = await admin
+      .from('tenants')
+      .select('auth_user_id')
+      .eq('id', id)
+      .single()
+
+    if (tenant?.auth_user_id) {
+      await admin.auth.admin.updateUserById(tenant.auth_user_id, {
+        ban_duration: body.status === '停止中' ? '876000h' : 'none',
+      })
+    }
+  }
+
   return NextResponse.json({ success: true })
 }
 
