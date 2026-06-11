@@ -6,7 +6,7 @@
 // active   = 利用中（ログイン済み or 利用開始済み）
 // suspended = 停止中
 export type TenantStatus = 'pending' | 'invited' | 'active' | 'suspended'
-export type TenantPlan   = 'Basic' | 'Standard' | 'Pro'
+export type TenantPlan   = 'β' | 'Basic' | 'Standard' | 'Pro'
 
 export interface Tenant {
   id: string

@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { X } from 'lucide-react'
 import { TenantInput, TenantPlan } from '@/lib/admin/types'
 
-const PLANS: TenantPlan[] = ['Basic', 'Standard', 'Pro']
+const PLANS: TenantPlan[] = ['β', 'Basic', 'Standard', 'Pro']
 
 interface Props {
   onClose: () => void

@@ -44,6 +44,7 @@ const STATUS_CFG: Record<TenantStatus, { label: string; cls: string }> = {
 }
 
 const PLAN_CLS: Record<string, string> = {
+  'β':      'bg-amber-50 text-amber-700',
   Basic:    'bg-gray-100 text-gray-600',
   Standard: 'bg-blue-50 text-blue-700',
   Pro:      'bg-purple-50 text-purple-700',
