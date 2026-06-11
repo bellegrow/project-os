@@ -11,6 +11,24 @@ import { getTenants, createTenant, updateTenantStatus, updateTenantInvited, upda
 import { isAdminEmail } from '@/lib/admin/guard'
 import NewTenantModal from '@/components/admin/NewTenantModal'
 
+async function getToken(): Promise<string | null> {
+  const { createClient } = await import('@/lib/supabase/client')
+  const { data: { session } } = await createClient().auth.getSession()
+  return session?.access_token ?? null
+}
+
+async function apiFetch(path: string, options: RequestInit = {}): Promise<Response> {
+  const token = await getToken()
+  return fetch(path, {
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`,
+      ...(options.headers ?? {}),
+    },
+  })
+}
+
 const SUPABASE_CONFIGURED = !!(
   process.env.NEXT_PUBLIC_SUPABASE_URL &&
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
@@ -92,7 +110,9 @@ export default function AdminPage() {
         }
 
         setUserEmail(user.email)
-        setTenants(getTenants())
+        const res = await apiFetch('/api/admin/tenants')
+        if (res.ok) setTenants(await res.json())
+        else setTenants([])
       } catch {
         router.replace('/dashboard')
       } finally {
@@ -111,20 +131,49 @@ export default function AdminPage() {
     router.replace('/login')
   }
 
-  const handleAdd = (input: TenantInput) => {
-    const tenant = createTenant(input)
-    setTenants(prev => [tenant, ...prev])
-    setShowModal(false)
-    showToast(`${input.companyName} を追加しました`)
+  const handleAdd = async (input: TenantInput) => {
+    if (!SUPABASE_CONFIGURED) {
+      const tenant = createTenant(input)
+      setTenants(prev => [tenant, ...prev])
+      setShowModal(false)
+      showToast(`${input.companyName} を追加しました`)
+      return
+    }
+    try {
+      const res = await apiFetch('/api/admin/tenants', {
+        method: 'POST',
+        body: JSON.stringify(input),
+      })
+      if (!res.ok) throw new Error()
+      const tenant: Tenant = await res.json()
+      setTenants(prev => [tenant, ...prev])
+      setShowModal(false)
+      showToast(`${input.companyName} を追加しました`)
+    } catch {
+      showToast('顧客の追加に失敗しました')
+    }
   }
 
-  const handleStatusChange = (id: string, next: TenantStatus) => {
-    updateTenantStatus(id, next)
+  const handleStatusChange = async (id: string, next: TenantStatus) => {
+    const now = new Date().toISOString()
     setTenants(prev =>
-      prev.map(t =>
-        t.id === id ? { ...t, status: next, updatedAt: new Date().toISOString() } : t
-      )
+      prev.map(t => t.id === id ? { ...t, status: next, updatedAt: now } : t)
     )
+    if (!SUPABASE_CONFIGURED) {
+      updateTenantStatus(id, next)
+      return
+    }
+    try {
+      const res = await apiFetch(`/api/admin/tenants/${id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ status: next }),
+      })
+      if (!res.ok) throw new Error()
+    } catch {
+      showToast('ステータスの更新に失敗しました')
+      const res2 = await apiFetch('/api/admin/tenants')
+      if (res2.ok) setTenants(await res2.json())
+    }
   }
 
   const handleInvite = useCallback(async (tenant: Tenant) => {
@@ -165,10 +214,15 @@ export default function AdminPage() {
       }
 
       const now = new Date().toISOString()
-      updateTenantInvited(tenant.id, now, json.userId ?? undefined)
-      if (json.organizationId) {
-        updateTenantOrganization(tenant.id, json.organizationId)
-      }
+      await apiFetch(`/api/admin/tenants/${tenant.id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({
+          status:         'invited',
+          invitedAt:      now,
+          authUserId:     json.userId      ?? undefined,
+          organizationId: json.organizationId ?? undefined,
+        }),
+      })
       setTenants(prev => prev.map(t =>
         t.id === tenant.id
           ? {
