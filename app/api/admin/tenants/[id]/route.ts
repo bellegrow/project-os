@@ -42,6 +42,10 @@ export async function PATCH(
   }
 
   const updates: Record<string, unknown> = { updated_at: new Date().toISOString() }
+  if (body.companyName    !== undefined) updates.company_name    = body.companyName
+  if (body.contactName    !== undefined) updates.contact_name    = body.contactName
+  if (body.email          !== undefined) updates.email           = body.email
+  if (body.plan           !== undefined) updates.plan            = body.plan
   if (body.status         !== undefined) updates.status          = body.status
   if (body.invitedAt      !== undefined) updates.invited_at      = body.invitedAt
   if (body.authUserId     !== undefined) updates.auth_user_id    = body.authUserId
@@ -50,6 +54,28 @@ export async function PATCH(
   const { error } = await serviceClient()
     .from('tenants')
     .update(updates)
+    .eq('id', id)
+
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  return NextResponse.json({ success: true })
+}
+
+export async function DELETE(
+  request: NextRequest,
+  context: { params: Promise<{ id: string }> }
+) {
+  if (!SUPABASE_URL || !SERVICE_ROLE_KEY) {
+    return NextResponse.json({ error: 'Not configured' }, { status: 503 })
+  }
+  if (!await verifyAdmin(request)) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
+  const { id } = await context.params
+
+  const { error } = await serviceClient()
+    .from('tenants')
+    .delete()
     .eq('id', id)
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })

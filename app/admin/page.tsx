@@ -4,12 +4,13 @@ import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   Plus, Building2, Shield, Ban, Send, LogOut, RotateCcw,
-  Users, CheckCircle2, Clock, XCircle, Loader2,
+  Users, CheckCircle2, Clock, XCircle, Loader2, Pencil, Trash2,
 } from 'lucide-react'
 import { Tenant, TenantInput, TenantStatus } from '@/lib/admin/types'
 import { getTenants, createTenant, updateTenantStatus, updateTenantInvited } from '@/lib/admin/storage'
 import { isAdminEmail } from '@/lib/admin/guard'
 import NewTenantModal from '@/components/admin/NewTenantModal'
+import EditTenantModal from '@/components/admin/EditTenantModal'
 
 async function getToken(): Promise<string | null> {
   const { createClient } = await import('@/lib/supabase/client')
@@ -73,12 +74,14 @@ function formatDate(iso: string): string {
 
 export default function AdminPage() {
   const router    = useRouter()
-  const [tenants,   setTenants]   = useState<Tenant[]>([])
-  const [userEmail, setUserEmail] = useState<string | null>(null)
-  const [loading,   setLoading]   = useState(true)
-  const [showModal, setShowModal] = useState(false)
-  const [toast,     setToast]     = useState<string | null>(null)
-  const [inviting,  setInviting]  = useState<string | null>(null)
+  const [tenants,     setTenants]     = useState<Tenant[]>([])
+  const [userEmail,   setUserEmail]   = useState<string | null>(null)
+  const [loading,     setLoading]     = useState(true)
+  const [showModal,   setShowModal]   = useState(false)
+  const [editTarget,  setEditTarget]  = useState<Tenant | null>(null)
+  const [toast,       setToast]       = useState<string | null>(null)
+  const [inviting,    setInviting]    = useState<string | null>(null)
+  const [deleting,    setDeleting]    = useState<string | null>(null)
 
   const showToast = useCallback((msg: string) => setToast(msg), [])
 
@@ -174,6 +177,50 @@ export default function AdminPage() {
       showToast('ステータスの更新に失敗しました')
       const res2 = await apiFetch('/api/admin/tenants')
       if (res2.ok) setTenants(await res2.json())
+    }
+  }
+
+  const handleEdit = async (input: TenantInput) => {
+    if (!editTarget) return
+    const id = editTarget.id
+    setTenants(prev => prev.map(t =>
+      t.id === id ? { ...t, ...input, updatedAt: new Date().toISOString() } : t
+    ))
+    setEditTarget(null)
+    if (!SUPABASE_CONFIGURED) return
+    try {
+      const res = await apiFetch(`/api/admin/tenants/${id}`, {
+        method: 'PATCH',
+        body: JSON.stringify(input),
+      })
+      if (!res.ok) throw new Error()
+      showToast('顧客情報を更新しました')
+    } catch {
+      showToast('更新に失敗しました')
+      const res2 = await apiFetch('/api/admin/tenants')
+      if (res2.ok) setTenants(await res2.json())
+    }
+  }
+
+  const handleDelete = async (tenant: Tenant) => {
+    if (!window.confirm(`「${tenant.companyName}」を削除しますか？`)) return
+    setDeleting(tenant.id)
+    setTenants(prev => prev.filter(t => t.id !== tenant.id))
+    if (!SUPABASE_CONFIGURED) {
+      setDeleting(null)
+      showToast(`${tenant.companyName} を削除しました`)
+      return
+    }
+    try {
+      const res = await apiFetch(`/api/admin/tenants/${tenant.id}`, { method: 'DELETE' })
+      if (!res.ok) throw new Error()
+      showToast(`${tenant.companyName} を削除しました`)
+    } catch {
+      showToast('削除に失敗しました')
+      const res2 = await apiFetch('/api/admin/tenants')
+      if (res2.ok) setTenants(await res2.json())
+    } finally {
+      setDeleting(null)
     }
   }
 
@@ -404,6 +451,15 @@ export default function AdminPage() {
                       {/* アクション */}
                       <td className="px-4 py-3">
                         <div className="flex items-center justify-end gap-1.5">
+                          {/* 編集 */}
+                          <button
+                            onClick={() => setEditTarget(tenant)}
+                            className="flex items-center gap-1 text-xs text-gray-500 hover:text-blue-600 border border-gray-200 hover:border-blue-300 rounded-md px-2 py-1 transition-colors"
+                          >
+                            <Pencil className="w-3 h-3" />
+                            編集
+                          </button>
+
                           {/* 招待送信 / 再送 */}
                           {tenant.status !== 'active' && tenant.status !== 'suspended' ? (
                             <button
@@ -437,6 +493,18 @@ export default function AdminPage() {
                               再開
                             </button>
                           )}
+
+                          {/* 削除 */}
+                          <button
+                            onClick={() => handleDelete(tenant)}
+                            disabled={deleting === tenant.id}
+                            className="flex items-center gap-1 text-xs text-gray-400 hover:text-red-600 border border-gray-200 hover:border-red-300 rounded-md px-2 py-1 transition-colors disabled:opacity-40"
+                          >
+                            {deleting === tenant.id
+                              ? <Loader2 className="w-3 h-3 animate-spin" />
+                              : <Trash2 className="w-3 h-3" />
+                            }
+                          </button>
                         </div>
                       </td>
                     </tr>
@@ -463,6 +531,15 @@ export default function AdminPage() {
         <NewTenantModal
           onClose={() => setShowModal(false)}
           onSaved={handleAdd}
+        />
+      )}
+
+      {/* 顧客編集モーダル */}
+      {editTarget && (
+        <EditTenantModal
+          tenant={editTarget}
+          onClose={() => setEditTarget(null)}
+          onSaved={handleEdit}
         />
       )}
 
