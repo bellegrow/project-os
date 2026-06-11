@@ -82,9 +82,14 @@ function LoginForm() {
         </div>
 
         <div>
-          <label className="block text-xs font-medium text-gray-700 mb-1.5">
-            パスワード
-          </label>
+          <div className="flex items-center justify-between mb-1.5">
+            <label className="block text-xs font-medium text-gray-700">
+              パスワード
+            </label>
+            <Link href="/auth/reset-password" className="text-xs text-blue-600 hover:text-blue-800">
+              パスワードを忘れた
+            </Link>
+          </div>
           <div className="relative">
             <input
               type={showPw ? 'text' : 'password'}
