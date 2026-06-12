@@ -58,9 +58,11 @@ export default function SettingsPage() {
     if (isCloud) {
       ;(async () => {
         const { createClient } = await import('@/lib/supabase/client')
-        const { data: { session } } = await createClient().auth.getSession()
+        const supabase = createClient()
+        const { data: { session } } = await supabase.auth.getSession()
         if (!session) return
-        setCurrentEmail(session.user.email ?? '')
+        const authEmail = session.user.email ?? ''
+        setCurrentEmail(authEmail)
         const res = await fetch('/api/profile', {
           headers: { Authorization: `Bearer ${session.access_token}` },
         })
@@ -68,6 +70,15 @@ export default function SettingsPage() {
           const data = await res.json()
           setProfilePlan(data.plan)
           if (data.orgPlan) setOrgPlanInfo(data.orgPlan)
+          // auth のメールと tenant のメールが食い違う場合は同期する
+          // （確認リンクをクリックして auth 側が変わった後のケース）
+          if (authEmail && data.email && data.email !== authEmail) {
+            await fetch('/api/profile', {
+              method: 'PATCH',
+              headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
+              body: JSON.stringify({ email: authEmail }),
+            })
+          }
         }
       })()
     }
@@ -86,13 +97,9 @@ export default function SettingsPage() {
       if (!session) throw new Error('ログインが必要です')
       const { error } = await supabase.auth.updateUser({ email: trimmed })
       if (error) throw error
-      // テナントテーブルにも反映
-      await fetch('/api/profile', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
-        body: JSON.stringify({ email: trimmed }),
-      })
-      setEmailMsg('確認メールを送信しました。新しいアドレスで受信を確認してください。')
+      // tenants.email の更新は確認リンククリック後に auth 側で変更が確定してから行う。
+      // ここでは行わない（確認前に更新すると auth と不整合になるため）。
+      setEmailMsg(`確認メールを ${trimmed} に送信しました。メール内のリンクをクリックすると変更が完了します。現在のアドレスにも通知が届く場合があります。`)
       setNewEmail('')
     } catch (err) {
       setEmailMsg(err instanceof Error ? err.message : 'メールアドレスの変更に失敗しました')
@@ -282,7 +289,7 @@ export default function SettingsPage() {
                 </button>
               </form>
               {emailMsg && (
-                <p className={`text-xs mt-2 ${emailMsg.startsWith('確認') ? 'text-blue-600' : 'text-red-500'}`}>
+                <p className={`text-xs mt-2 leading-relaxed ${emailMsg.startsWith('確認メールを') ? 'text-blue-600' : 'text-red-500'}`}>
                   {emailMsg}
                 </p>
               )}
