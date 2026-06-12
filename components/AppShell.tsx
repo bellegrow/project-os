@@ -11,6 +11,8 @@ import {
 } from 'lucide-react'
 import AppNavTabs from './AppNavTabs'
 import StorageModeBadge from './StorageModeBadge'
+import { usePlan } from '@/lib/hooks/usePlan'
+import { isSubscriptionActive } from '@/lib/planLimits'
 
 const COLLAPSE_KEY = 'pos_sidebar_collapsed'
 
@@ -80,6 +82,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const mobileTab  = getMobileTab(pathname)
   const [collapsed,   setCollapsed]   = useState(false)
   const [isLoggedIn,  setIsLoggedIn]  = useState(false)
+  const planInfo   = usePlan()
 
   useEffect(() => {
     try {
@@ -97,6 +100,15 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       })
     })
   }, [pathname, router])
+
+  // 解約・期限切れ → 設定ページ（データ持ち出し猶予）以外はリダイレクト
+  useEffect(() => {
+    if (!process.env.NEXT_PUBLIC_SUPABASE_URL) return
+    if (!planInfo) return
+    if (isSubscriptionActive(planInfo)) return
+    if (pathname === '/settings' || pathname.startsWith('/settings/')) return
+    router.replace('/settings')
+  }, [planInfo, pathname, router])
 
   useEffect(() => {
     if (!process.env.NEXT_PUBLIC_SUPABASE_URL) return

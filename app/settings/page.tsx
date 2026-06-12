@@ -13,7 +13,7 @@ import {
   SETTINGS_DEFAULTS,
 } from '@/lib/settingsSource'
 import { exportProjectsCsv, exportInvoicesCsv, exportCostsCsv } from '@/lib/csv'
-import { PLAN_LABELS, SUB_STATUS_LABEL, SUB_STATUS_CLS, trialDaysLeft, OrgPlanInfo } from '@/lib/planLimits'
+import { PLAN_LABELS, SUB_STATUS_LABEL, SUB_STATUS_CLS, trialDaysLeft, OrgPlanInfo, isSubscriptionActive } from '@/lib/planLimits'
 import CsvImportModal from '@/components/CsvImportModal'
 
 const PLAN_CLS: Record<string, string> = {
@@ -176,10 +176,49 @@ export default function SettingsPage() {
   const inputCls = 'w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent'
   const numberInputCls = 'w-24 border border-gray-200 rounded-lg px-3 py-2 text-sm text-right focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent'
 
+  const isGracePeriod = isCloud && !!orgPlanInfo && !isSubscriptionActive(orgPlanInfo)
+
   return (
     <AppShell>
       <main className="max-w-2xl mx-auto px-4 py-6 lg:px-8">
         <h2 className="text-base font-semibold text-gray-900 mb-6 hidden lg:block">設定</h2>
+
+        {/* 猶予期間バナー */}
+        {isGracePeriod && (
+          <div className="bg-amber-50 border border-amber-300 rounded-xl p-5 mb-6">
+            <div className="flex items-start gap-3">
+              <div className="w-8 h-8 bg-amber-100 rounded-lg flex items-center justify-center shrink-0">
+                <Download className="w-4 h-4 text-amber-600" />
+              </div>
+              <div className="flex-1">
+                <p className="text-sm font-semibold text-amber-900 mb-1">
+                  ご契約が終了しました — データをエクスポートしてください
+                </p>
+                <p className="text-xs text-amber-700 mb-3">
+                  現在、データの持ち出し期間中です。下記のエクスポートボタンから全データをCSVで保存できます。
+                  期間終了後はアクセスできなくなりますので、お早めにお持ち出しください。
+                </p>
+                <div className="space-y-2">
+                  {[
+                    { key: 'projects-grace', label: '案件CSVをダウンロード', fn: exportProjectsCsv },
+                    { key: 'invoices-grace', label: '請求CSVをダウンロード', fn: exportInvoicesCsv },
+                    { key: 'costs-grace',    label: '原価CSVをダウンロード', fn: exportCostsCsv },
+                  ].map(({ key, label, fn }) => (
+                    <button
+                      key={key}
+                      onClick={() => handleExport(key, fn)}
+                      disabled={exporting !== null}
+                      className="w-full flex items-center justify-between px-4 py-2.5 bg-white border border-amber-200 rounded-lg text-sm font-medium text-amber-800 hover:bg-amber-50 transition-colors disabled:opacity-50"
+                    >
+                      <span>{exporting === key ? 'ダウンロード中...' : label}</span>
+                      <Download className="w-4 h-4 text-amber-500" />
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* アカウント設定（クラウドモード時のみ） */}
         {isCloud && (
