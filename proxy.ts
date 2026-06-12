@@ -2,7 +2,7 @@ import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
 // 認証不要のパス（前方一致）
-const PUBLIC_PATHS = ['/login', '/signup', '/auth', '/seed', '/onboarding']
+const PUBLIC_PATHS = ['/login', '/signup', '/auth', '/seed', '/onboarding', '/api/']
 
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl
