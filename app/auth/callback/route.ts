@@ -54,5 +54,12 @@ export async function GET(request: Request) {
     }
   }
 
+  // code も token_hash もない = Supabase の追加リダイレクトや直接アクセス
+  // エラーを出さずにダッシュボードへ（ログイン済みならそのまま、未ログインならミドルウェアが /login へ飛ばす）
+  if (!code && !tokenHash) {
+    return NextResponse.redirect(`${origin}/dashboard`)
+  }
+
+  // code / token_hash はあったが検証失敗 = 本当の認証エラー
   return NextResponse.redirect(`${origin}/login?error=認証に失敗しました`)
 }
