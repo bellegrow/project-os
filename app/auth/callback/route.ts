@@ -33,17 +33,24 @@ export async function GET(request: Request) {
     }
   }
 
-  // Invite / password reset flow
+  // Invite / password reset / email change flow
   if (tokenHash && type) {
     const { error } = await supabase.auth.verifyOtp({
       token_hash: tokenHash,
-      type: type as 'invite' | 'recovery' | 'email',
+      type: type as 'invite' | 'recovery' | 'email' | 'email_change',
     })
     if (!error) {
       if (type === 'invite' || type === 'recovery') {
         return NextResponse.redirect(`${origin}/auth/update-password`)
       }
+      if (type === 'email_change') {
+        return NextResponse.redirect(`${origin}/settings?message=メールアドレスを変更しました`)
+      }
       return NextResponse.redirect(`${origin}${next}`)
+    }
+    // OTP期限切れ・無効リンクの場合は専用エラーページへ
+    if (type === 'email_change') {
+      return NextResponse.redirect(`${origin}/settings?error=確認リンクの有効期限が切れています。設定ページからもう一度メールアドレス変更を送信してください。`)
     }
   }
 

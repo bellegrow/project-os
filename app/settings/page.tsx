@@ -49,6 +49,19 @@ export default function SettingsPage() {
 
   useEffect(() => {
     setMounted(true)
+    // コールバックからの message / error を URL パラメータで受け取る
+    const params = new URLSearchParams(window.location.search)
+    const msg = params.get('message')
+    const err = params.get('error')
+    if (msg) setEmailMsg(msg)
+    if (err) setEmailMsg(err)
+    if (msg || err) {
+      // パラメータをURLから除去
+      const url = new URL(window.location.href)
+      url.searchParams.delete('message')
+      url.searchParams.delete('error')
+      window.history.replaceState({}, '', url.toString())
+    }
   }, [])
 
   useEffect(() => {
@@ -289,7 +302,11 @@ export default function SettingsPage() {
                 </button>
               </form>
               {emailMsg && (
-                <p className={`text-xs mt-2 leading-relaxed ${emailMsg.startsWith('確認メールを') ? 'text-blue-600' : 'text-red-500'}`}>
+                <p className={`text-xs mt-2 leading-relaxed ${
+                  emailMsg.startsWith('確認メールを') || emailMsg.startsWith('メールアドレスを変更しました')
+                    ? 'text-blue-600'
+                    : 'text-red-500'
+                }`}>
                   {emailMsg}
                 </p>
               )}
