@@ -12,6 +12,7 @@ import {
   getContacts, createContact, updateContact, deleteContact,
   getProjectsByCustomer, getHearingsByProjectIds,
   getTasksByCustomer, getInvoices, getProjectCostsByCustomer, getProjectFilesByCustomer,
+  getProjects, updateProject,
 } from '@/lib/dataSource'
 import { isTaskOverdue, formatYMD, formatCurrency } from '@/lib/utils'
 import { useCloudMode } from '@/lib/hooks/useCloudMode'
@@ -37,6 +38,27 @@ export default function CustomerDetailPage() {
   const [customerInvoices, setCustomerInvoices] = useState<Invoice[]>([])
   const [customerCosts, setCustomerCosts] = useState<ProjectCost[]>([])
   const [customerFiles, setCustomerFiles] = useState<ProjectFile[]>([])
+
+  // 案件紐付けモーダル
+  const [showLinkModal, setShowLinkModal] = useState(false)
+  const [allProjects, setAllProjects] = useState<Project[]>([])
+  const [linkSearch, setLinkSearch] = useState('')
+  const [linking, setLinking] = useState<string | null>(null)
+
+  const openLinkModal = async () => {
+    const ps = await getProjects()
+    setAllProjects(ps)
+    setLinkSearch('')
+    setShowLinkModal(true)
+  }
+
+  const handleLinkProject = async (projectId: string) => {
+    setLinking(projectId)
+    await updateProject(projectId, { customerId })
+    setLinking(null)
+    setShowLinkModal(false)
+    load()
+  }
 
   // 担当者インライン追加フォーム
   const [showAddContact, setShowAddContact] = useState(false)
@@ -605,16 +627,29 @@ export default function CustomerDetailPage() {
 
         {/* 案件履歴 */}
         <section>
-          <h2 className="text-sm font-semibold text-gray-700 mb-3">案件履歴</h2>
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-sm font-semibold text-gray-700">案件履歴</h2>
+            {!isDemoCustomer && projects.length > 0 && (
+              <button
+                onClick={openLinkModal}
+                className="flex items-center gap-1 text-xs font-medium text-blue-600 hover:text-blue-700 transition-colors"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                案件を紐付ける
+              </button>
+            )}
+          </div>
           {projects.length === 0 ? (
             <div className="bg-white border border-dashed border-gray-200 rounded-xl p-5 text-center">
               <p className="text-sm text-gray-400">紐づく案件がありません</p>
-              <button
-                onClick={() => router.push('/projects')}
-                className="mt-1 text-sm text-blue-600 font-medium hover:text-blue-700"
-              >
-                案件一覧から紐付ける →
-              </button>
+              {!isDemoCustomer && (
+                <button
+                  onClick={openLinkModal}
+                  className="mt-1 text-sm text-blue-600 font-medium hover:text-blue-700"
+                >
+                  案件一覧から紐付ける →
+                </button>
+              )}
             </div>
           ) : (
             <div className="space-y-2">
@@ -673,6 +708,80 @@ export default function CustomerDetailPage() {
           onClose={() => setShowActivityModal(false)}
           onSaved={() => { setShowActivityModal(false); setActivityRefreshKey((k) => k + 1) }}
         />
+      )}
+
+      {/* 案件紐付けモーダル */}
+      {showLinkModal && (
+        <div
+          className="fixed inset-0 bg-black/30 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4"
+          onClick={(e) => { if (e.target === e.currentTarget) setShowLinkModal(false) }}
+        >
+          <div className="bg-white w-full sm:max-w-md rounded-t-2xl sm:rounded-2xl shadow-xl flex flex-col max-h-[80vh]">
+            <div className="flex items-center justify-between px-5 pt-5 pb-3 border-b border-gray-100 shrink-0">
+              <h2 className="text-sm font-semibold text-gray-900">案件を紐付ける</h2>
+              <button onClick={() => setShowLinkModal(false)} className="text-gray-400 hover:text-gray-600">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <div className="px-4 py-3 shrink-0">
+              <input
+                type="text"
+                value={linkSearch}
+                onChange={(e) => setLinkSearch(e.target.value)}
+                placeholder="案件名・クライアント名で検索"
+                autoFocus
+                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            </div>
+            <div className="overflow-y-auto flex-1 px-4 pb-4">
+              {(() => {
+                const q = linkSearch.trim().toLowerCase()
+                const filtered = allProjects.filter((p) =>
+                  !q || p.name.toLowerCase().includes(q) || p.clientName.toLowerCase().includes(q)
+                )
+                if (filtered.length === 0) {
+                  return <p className="text-sm text-gray-400 text-center py-8">案件が見つかりません</p>
+                }
+                return (
+                  <div className="space-y-1.5">
+                    {filtered.map((p) => (
+                      <button
+                        key={p.id}
+                        onClick={() => handleLinkProject(p.id)}
+                        disabled={linking === p.id || projects.some((ep) => ep.id === p.id)}
+                        className="w-full text-left px-3 py-2.5 rounded-xl border border-gray-200 hover:border-blue-300 hover:bg-blue-50 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+                      >
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="min-w-0">
+                            <p className="text-sm font-medium text-gray-900 truncate">{p.name}</p>
+                            <p className="text-xs text-gray-400 truncate">{p.clientName}</p>
+                          </div>
+                          <div className="flex items-center gap-2 shrink-0">
+                            {projects.some((ep) => ep.id === p.id) ? (
+                              <span className="text-xs text-gray-400">紐付け済み</span>
+                            ) : linking === p.id ? (
+                              <span className="text-xs text-blue-500">紐付け中...</span>
+                            ) : null}
+                            <span className={`text-xs font-medium px-1.5 py-0.5 rounded-full ${
+                              p.status === '商談中' ? 'bg-amber-100 text-amber-700' :
+                              p.status === '提案済' ? 'bg-blue-100 text-blue-700' :
+                              p.status === '受注'   ? 'bg-emerald-100 text-emerald-700' :
+                              p.status === '進行中' ? 'bg-violet-100 text-violet-700' :
+                              p.status === '完了'   ? 'bg-gray-100 text-gray-600' :
+                              'bg-red-100 text-red-600'
+                            }`}>
+                              {p.status}
+                            </span>
+                          </div>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                )
+              })()}
+            </div>
+          </div>
+        </div>
       )}
     </div>
   )
