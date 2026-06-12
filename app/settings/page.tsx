@@ -108,7 +108,10 @@ export default function SettingsPage() {
       const supabase = createClient()
       const { data: { session } } = await supabase.auth.getSession()
       if (!session) throw new Error('ログインが必要です')
-      const { error } = await supabase.auth.updateUser({ email: trimmed })
+      const { error } = await supabase.auth.updateUser(
+        { email: trimmed },
+        { emailRedirectTo: `${window.location.origin}/auth/callback` }
+      )
       if (error) throw error
       // tenants.email の更新は確認リンククリック後に auth 側で変更が確定してから行う。
       // ここでは行わない（確認前に更新すると auth と不整合になるため）。
