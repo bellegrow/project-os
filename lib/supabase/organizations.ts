@@ -1,8 +1,11 @@
-import { createClient, SupabaseClient } from '@supabase/supabase-js'
+import { SupabaseClient } from '@supabase/supabase-js'
 
 type OrgRow = {
   id: string
   name: string
+  plan: string
+  subscription_status: string
+  trial_ends_at: string | null
   created_at: string
 }
 
@@ -10,9 +13,11 @@ type MemberRow = {
   organization_id: string
 }
 
+const TRIAL_DAYS = 30
+
 /**
  * service_role クライアントで組織を作成し、owner メンバーを追加する。
- * 招待APIルートでのみ呼び出す（サーバー専用）。
+ * plan='standard', subscription_status='trialing', trial_ends_at=now()+30日 を自動設定。
  */
 export async function createOrganizationWithOwner(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -20,9 +25,16 @@ export async function createOrganizationWithOwner(
   name: string,
   ownerUserId: string
 ): Promise<string> {
+  const trialEndsAt = new Date(Date.now() + TRIAL_DAYS * 24 * 60 * 60 * 1000).toISOString()
+
   const { data: org, error: orgError } = await serviceRoleClient
     .from('organizations')
-    .insert({ name })
+    .insert({
+      name,
+      plan:                'standard',
+      subscription_status: 'trialing',
+      trial_ends_at:       trialEndsAt,
+    })
     .select('id')
     .single<OrgRow>()
 
@@ -34,8 +46,8 @@ export async function createOrganizationWithOwner(
     .from('organization_members')
     .insert({
       organization_id: org.id,
-      user_id: ownerUserId,
-      role: 'owner',
+      user_id:         ownerUserId,
+      role:            'owner',
     })
 
   if (memberError) {
@@ -47,10 +59,6 @@ export async function createOrganizationWithOwner(
 
 /**
  * ユーザーが所属する最初の organization_id を返す。
- * 所属なしの場合は null を返す。
- * 通常の anon クライアントで呼び出す（RLS が必要）。
- *
- * TODO: v1.4.2 — organization_members に RLS ポリシーを追加する
  */
 export async function getMemberOrganizationId(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

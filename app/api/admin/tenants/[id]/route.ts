@@ -41,26 +41,27 @@ export async function PATCH(
     return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 })
   }
 
-  const updates: Record<string, unknown> = { updated_at: new Date().toISOString() }
-  if (body.companyName    !== undefined) updates.company_name    = body.companyName
-  if (body.contactName    !== undefined) updates.contact_name    = body.contactName
-  if (body.email          !== undefined) updates.email           = body.email
-  if (body.plan           !== undefined) updates.plan            = body.plan
-  if (body.status         !== undefined) updates.status          = body.status
-  if (body.invitedAt      !== undefined) updates.invited_at      = body.invitedAt
-  if (body.authUserId     !== undefined) updates.auth_user_id    = body.authUserId
-  if (body.organizationId !== undefined) updates.organization_id = body.organizationId
-
   const admin = serviceClient()
 
-  const { error } = await admin
+  // ── tenants テーブルの更新 ─────────────────────────────────
+  const tenantUpdates: Record<string, unknown> = { updated_at: new Date().toISOString() }
+  if (body.companyName    !== undefined) tenantUpdates.company_name    = body.companyName
+  if (body.contactName    !== undefined) tenantUpdates.contact_name    = body.contactName
+  if (body.email          !== undefined) tenantUpdates.email           = body.email
+  if (body.plan           !== undefined) tenantUpdates.plan            = body.plan
+  if (body.status         !== undefined) tenantUpdates.status          = body.status
+  if (body.invitedAt      !== undefined) tenantUpdates.invited_at      = body.invitedAt
+  if (body.authUserId     !== undefined) tenantUpdates.auth_user_id    = body.authUserId
+  if (body.organizationId !== undefined) tenantUpdates.organization_id = body.organizationId
+
+  const { error: tenantError } = await admin
     .from('tenants')
-    .update(updates)
+    .update(tenantUpdates)
     .eq('id', id)
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (tenantError) return NextResponse.json({ error: tenantError.message }, { status: 500 })
 
-  // Sync ban status with Supabase Auth when status changes
+  // ── Supabase Auth のban同期 ────────────────────────────────
   if (body.status === '停止中' || body.status === '利用中') {
     const { data: tenant } = await admin
       .from('tenants')
@@ -72,6 +73,32 @@ export async function PATCH(
       await admin.auth.admin.updateUserById(tenant.auth_user_id, {
         ban_duration: body.status === '停止中' ? '876000h' : 'none',
       })
+    }
+  }
+
+  // ── organizations テーブルの更新（サブスクリプション情報） ──
+  const hasOrgUpdate = body.orgPlan !== undefined
+    || body.subscriptionStatus !== undefined
+    || body.trialEndsAt !== undefined
+
+  if (hasOrgUpdate) {
+    // テナントの organization_id を取得
+    const { data: tenant } = await admin
+      .from('tenants')
+      .select('organization_id')
+      .eq('id', id)
+      .single()
+
+    if (tenant?.organization_id) {
+      const orgUpdates: Record<string, unknown> = { updated_at: new Date().toISOString() }
+      if (body.orgPlan            !== undefined) orgUpdates.plan                = body.orgPlan
+      if (body.subscriptionStatus !== undefined) orgUpdates.subscription_status = body.subscriptionStatus
+      if (body.trialEndsAt        !== undefined) orgUpdates.trial_ends_at       = body.trialEndsAt
+
+      await admin
+        .from('organizations')
+        .update(orgUpdates)
+        .eq('id', tenant.organization_id)
     }
   }
 

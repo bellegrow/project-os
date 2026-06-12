@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import type { OrgPlanId, SubscriptionStatus } from '@/lib/planLimits'
 
 const SUPABASE_URL      = process.env.NEXT_PUBLIC_SUPABASE_URL
 const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
@@ -22,7 +23,7 @@ async function getAuthUser(request: NextRequest) {
   return user ?? null
 }
 
-// GET /api/profile — ログインユーザーのテナント情報（プラン含む）を返す
+// GET /api/profile — ログインユーザーのテナント情報 + 組織プランを返す
 export async function GET(request: NextRequest) {
   if (!SUPABASE_URL || !SERVICE_ROLE_KEY) {
     return NextResponse.json({ error: 'Not configured' }, { status: 503 })
@@ -30,11 +31,39 @@ export async function GET(request: NextRequest) {
   const user = await getAuthUser(request)
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const { data: tenant } = await serviceClient()
+  const admin = serviceClient()
+
+  // テナント情報
+  const { data: tenant } = await admin
     .from('tenants')
     .select('plan, email, company_name, contact_name, status')
     .eq('auth_user_id', user.id)
-    .single()
+    .maybeSingle()
+
+  // 組織プラン（organizations テーブル）
+  let orgPlan: { plan: OrgPlanId; subscriptionStatus: SubscriptionStatus; trialEndsAt: string | null } | null = null
+
+  const { data: member } = await admin
+    .from('organization_members')
+    .select('organization_id')
+    .eq('user_id', user.id)
+    .maybeSingle()
+
+  if (member?.organization_id) {
+    const { data: org } = await admin
+      .from('organizations')
+      .select('plan, subscription_status, trial_ends_at')
+      .eq('id', member.organization_id)
+      .maybeSingle()
+
+    if (org) {
+      orgPlan = {
+        plan:               (org.plan ?? 'standard') as OrgPlanId,
+        subscriptionStatus: (org.subscription_status ?? 'trialing') as SubscriptionStatus,
+        trialEndsAt:        org.trial_ends_at ?? null,
+      }
+    }
+  }
 
   return NextResponse.json({
     plan:        tenant?.plan        ?? null,
@@ -42,6 +71,7 @@ export async function GET(request: NextRequest) {
     companyName: tenant?.company_name ?? null,
     contactName: tenant?.contact_name ?? null,
     status:      tenant?.status       ?? null,
+    orgPlan,
   })
 }
 

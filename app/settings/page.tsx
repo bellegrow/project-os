@@ -13,12 +13,13 @@ import {
   SETTINGS_DEFAULTS,
 } from '@/lib/settingsSource'
 import { exportProjectsCsv, exportInvoicesCsv, exportCostsCsv } from '@/lib/csv'
+import { PLAN_LABELS, SUB_STATUS_LABEL, SUB_STATUS_CLS, trialDaysLeft, OrgPlanInfo } from '@/lib/planLimits'
 
 const PLAN_CLS: Record<string, string> = {
   'β':       'bg-amber-50 text-amber-700 border border-amber-200',
   'Basic':    'bg-blue-50 text-blue-700 border border-blue-200',
   'Standard': 'bg-indigo-50 text-indigo-700 border border-indigo-200',
-  'Pro':      'bg-purple-50 text-purple-700 border border-purple-200',
+  'Team':     'bg-purple-50 text-purple-700 border border-purple-200',
 }
 
 export default function SettingsPage() {
@@ -35,6 +36,7 @@ export default function SettingsPage() {
 
   // ── アカウント設定 ────────────────────────────────────────────
   const [profilePlan,   setProfilePlan]   = useState<string | null>(null)
+  const [orgPlanInfo,   setOrgPlanInfo]   = useState<OrgPlanInfo | null>(null)
   const [currentEmail,  setCurrentEmail]  = useState('')
   const [newEmail,      setNewEmail]      = useState('')
   const [emailSaving,   setEmailSaving]   = useState(false)
@@ -63,6 +65,7 @@ export default function SettingsPage() {
         if (res.ok) {
           const data = await res.json()
           setProfilePlan(data.plan)
+          if (data.orgPlan) setOrgPlanInfo(data.orgPlan)
         }
       })()
     }
@@ -182,15 +185,34 @@ export default function SettingsPage() {
             <h2 className="text-sm font-semibold text-gray-700 mb-4">アカウント設定</h2>
 
             {/* プラン表示 */}
-            <div className="flex items-center gap-2 mb-5 pb-4 border-b border-gray-100">
-              <Crown className="w-4 h-4 text-amber-500 shrink-0" />
-              <span className="text-sm text-gray-700">契約プラン</span>
-              {profilePlan ? (
-                <span className={`ml-auto text-xs font-semibold px-2.5 py-0.5 rounded-full ${PLAN_CLS[profilePlan] ?? 'bg-gray-100 text-gray-600'}`}>
-                  {profilePlan}
-                </span>
-              ) : (
-                <span className="ml-auto text-xs text-gray-400">読み込み中...</span>
+            <div className="mb-5 pb-4 border-b border-gray-100">
+              <div className="flex items-center gap-2 mb-2">
+                <Crown className="w-4 h-4 text-amber-500 shrink-0" />
+                <span className="text-sm text-gray-700">契約プラン</span>
+                {orgPlanInfo ? (
+                  <span className="ml-auto text-xs font-semibold px-2.5 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200">
+                    {PLAN_LABELS[orgPlanInfo.plan] ?? orgPlanInfo.plan}
+                  </span>
+                ) : profilePlan ? (
+                  <span className={`ml-auto text-xs font-semibold px-2.5 py-0.5 rounded-full ${PLAN_CLS[profilePlan] ?? 'bg-gray-100 text-gray-600'}`}>
+                    {profilePlan}
+                  </span>
+                ) : (
+                  <span className="ml-auto text-xs text-gray-400">読み込み中...</span>
+                )}
+              </div>
+              {orgPlanInfo && (
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className={`text-xs font-medium px-2 py-0.5 rounded-md ${SUB_STATUS_CLS[orgPlanInfo.subscriptionStatus]}`}>
+                    {SUB_STATUS_LABEL[orgPlanInfo.subscriptionStatus]}
+                  </span>
+                  {orgPlanInfo.subscriptionStatus === 'trialing' && orgPlanInfo.trialEndsAt && (
+                    <span className="text-xs text-gray-500">
+                      トライアル終了: {orgPlanInfo.trialEndsAt.slice(0, 10).replace(/-/g, '/')}
+                      （残{trialDaysLeft(orgPlanInfo.trialEndsAt) ?? 0}日）
+                    </span>
+                  )}
+                </div>
               )}
             </div>
 

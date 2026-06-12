@@ -9,6 +9,7 @@ import {
 import { Tenant, TenantInput, TenantStatus } from '@/lib/admin/types'
 import { getTenants, createTenant, updateTenantStatus, updateTenantInvited } from '@/lib/admin/storage'
 import { isAdminEmail } from '@/lib/admin/guard'
+import { SUB_STATUS_LABEL, SUB_STATUS_CLS, trialDaysLeft, SubscriptionStatus } from '@/lib/planLimits'
 import NewTenantModal from '@/components/admin/NewTenantModal'
 import EditTenantModal from '@/components/admin/EditTenantModal'
 
@@ -48,7 +49,7 @@ const PLAN_CLS: Record<string, string> = {
   'β':      'bg-amber-50 text-amber-700',
   Basic:    'bg-gray-100 text-gray-600',
   Standard: 'bg-blue-50 text-blue-700',
-  Pro:      'bg-purple-50 text-purple-700',
+  Team:     'bg-purple-50 text-purple-700',
 }
 
 // ─── Toast ────────────────────────────────────────────────────
@@ -396,6 +397,7 @@ export default function AdminPage() {
                   <th className="text-left text-xs font-medium text-gray-500 px-4 py-3 w-28">担当者</th>
                   <th className="text-left text-xs font-medium text-gray-500 px-4 py-3 w-48">メールアドレス</th>
                   <th className="text-center text-xs font-medium text-gray-500 px-4 py-3 w-20">プラン</th>
+                  <th className="text-center text-xs font-medium text-gray-500 px-4 py-3 w-28">サブスク</th>
                   <th className="text-center text-xs font-medium text-gray-500 px-4 py-3 w-24">ステータス</th>
                   <th className="text-center text-xs font-medium text-gray-500 px-4 py-3 w-24">登録日</th>
                   <th className="text-right text-xs font-medium text-gray-500 px-4 py-3 w-40">アクション</th>
@@ -434,6 +436,24 @@ export default function AdminPage() {
                         <span className={`inline-block text-xs font-medium px-2 py-0.5 rounded-md ${PLAN_CLS[tenant.plan] ?? ''}`}>
                           {tenant.plan}
                         </span>
+                      </td>
+
+                      {/* サブスク */}
+                      <td className="px-4 py-3 text-center">
+                        {tenant.subscriptionStatus ? (
+                          <div className="inline-flex flex-col items-center gap-0.5">
+                            <span className={`text-xs font-medium px-2 py-0.5 rounded-md ${SUB_STATUS_CLS[tenant.subscriptionStatus as SubscriptionStatus] ?? 'bg-gray-100 text-gray-500'}`}>
+                              {SUB_STATUS_LABEL[tenant.subscriptionStatus as SubscriptionStatus] ?? tenant.subscriptionStatus}
+                            </span>
+                            {tenant.subscriptionStatus === 'trialing' && tenant.trialEndsAt && (
+                              <span className="text-xs text-gray-400">
+                                残{trialDaysLeft(tenant.trialEndsAt) ?? 0}日
+                              </span>
+                            )}
+                          </div>
+                        ) : (
+                          <span className="text-xs text-gray-300">—</span>
+                        )}
                       </td>
 
                       {/* ステータス */}

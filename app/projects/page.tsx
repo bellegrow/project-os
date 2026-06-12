@@ -13,6 +13,9 @@ import AppShell from '@/components/AppShell'
 import MigrationBanner from '@/components/MigrationBanner'
 import { demoProjects } from '@/lib/demoData'
 import { IS_DEMO_MODE } from '@/lib/demo'
+import { useCloudMode } from '@/lib/hooks/useCloudMode'
+import { usePlan } from '@/lib/hooks/usePlan'
+import { trialDaysLeft, maxActiveProjects, PLAN_LABELS, isSubscriptionActive } from '@/lib/planLimits'
 
 type StatusFilter = 'アクティブ' | 'すべて' | '商談中' | '提案済' | '受注' | '進行中' | '完了' | '失注'
 type SortOrder = '更新が新しい順' | '最終ヒアリングが古い順' | '放置日数が長い順'
@@ -26,6 +29,8 @@ const SORT_OPTIONS: { label: string; value: SortOrder }[] = [
 const INACTIVE_STATUSES = ['完了', '失注'] as const
 
 export default function ProjectsPage() {
+  const isCloud = useCloudMode()
+  const planInfo = usePlan()
   const [projects, setProjects] = useState<Project[]>([])
   const [latestHearings, setLatestHearings] = useState<Record<string, string>>({})
   const [latestHearingDates, setLatestHearingDates] = useState<Record<string, string>>({})
@@ -136,6 +141,47 @@ export default function ProjectsPage() {
           const ps = await getProjects()
           setProjects(ps)
         }} />
+
+        {/* プランバナー */}
+        {isCloud && planInfo && (() => {
+          const daysLeft = trialDaysLeft(planInfo.trialEndsAt)
+          const limit = maxActiveProjects(planInfo)
+          const active = !isSubscriptionActive(planInfo)
+          const activeCount = projects.filter(p => p.status !== '完了' && p.status !== '失注').length
+
+          if (active) return (
+            <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-2.5 flex items-center gap-2 mb-4">
+              <span className="text-xs text-red-700 font-medium">サブスクリプションが無効です。</span>
+              <span className="text-xs text-red-500">管理者にお問い合わせください。</span>
+            </div>
+          )
+
+          if (planInfo.subscriptionStatus === 'trialing' && daysLeft !== null && daysLeft <= 7) return (
+            <div className={`border rounded-xl px-4 py-2.5 flex items-center gap-2 mb-4 ${daysLeft <= 3 ? 'bg-red-50 border-red-200' : 'bg-amber-50 border-amber-200'}`}>
+              <span className={`text-xs font-medium ${daysLeft <= 3 ? 'text-red-700' : 'text-amber-700'}`}>
+                無料トライアル残り{daysLeft}日
+              </span>
+              <span className={`text-xs ${daysLeft <= 3 ? 'text-red-500' : 'text-amber-500'}`}>
+                — {PLAN_LABELS[planInfo.plan]}プランご利用中
+              </span>
+            </div>
+          )
+
+          if (limit !== null) return (
+            <div className={`border rounded-xl px-4 py-2.5 flex items-center gap-2 mb-4 ${activeCount >= limit ? 'bg-amber-50 border-amber-200' : 'bg-gray-50 border-gray-200'}`}>
+              <span className={`text-xs font-medium ${activeCount >= limit ? 'text-amber-700' : 'text-gray-600'}`}>
+                {PLAN_LABELS[planInfo.plan]}プラン
+              </span>
+              <span className={`text-xs ${activeCount >= limit ? 'text-amber-600' : 'text-gray-400'}`}>
+                — 進行中案件 {activeCount}/{limit}件
+                {activeCount >= limit && ' （上限に達しました）'}
+              </span>
+            </div>
+          )
+
+          return null
+        })()}
+
         {projects.length === 0 && IS_DEMO_MODE ? (
           <>
             {/* デモ通知バナー */}

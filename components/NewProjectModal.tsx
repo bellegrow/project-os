@@ -3,8 +3,11 @@
 import { useState, useEffect } from 'react'
 import { X, Plus } from 'lucide-react'
 import { Project, ProjectStatus, Customer } from '@/lib/types'
-import { createProject, getCustomers, createCustomer } from '@/lib/dataSource'
+import { createProject, getCustomers, createCustomer, getProjects } from '@/lib/dataSource'
 import { useCloudMode } from '@/lib/hooks/useCloudMode'
+import { usePlan } from '@/lib/hooks/usePlan'
+import { maxActiveProjects, PLAN_LABELS } from '@/lib/planLimits'
+import PlanLimitModal from '@/components/PlanLimitModal'
 
 interface Props {
   onClose: () => void
@@ -13,21 +16,29 @@ interface Props {
 
 const STATUS_OPTIONS: ProjectStatus[] = ['商談中', '提案済', '受注', '進行中', '完了', '失注']
 
+const INACTIVE: ProjectStatus[] = ['完了', '失注']
+
 export default function NewProjectModal({ onClose, onCreated }: Props) {
   const isCloud = useCloudMode()
-  const [customers, setCustomers] = useState<Customer[]>([])
+  const planInfo = usePlan()
+  const [customers,          setCustomers]          = useState<Customer[]>([])
   const [selectedCustomerId, setSelectedCustomerId] = useState<string>('')
-  const [showNewCustomer, setShowNewCustomer] = useState(false)
-  const [newCustomerName, setNewCustomerName] = useState('')
-  const [clientName, setClientName] = useState('')
-  const [name, setName] = useState('')
-  const [budget, setBudget] = useState('')
-  const [status, setStatus] = useState<ProjectStatus>('商談中')
-  const [submitting, setSubmitting] = useState(false)
+  const [showNewCustomer,    setShowNewCustomer]    = useState(false)
+  const [newCustomerName,    setNewCustomerName]    = useState('')
+  const [clientName,         setClientName]         = useState('')
+  const [name,               setName]               = useState('')
+  const [budget,             setBudget]             = useState('')
+  const [status,             setStatus]             = useState<ProjectStatus>('商談中')
+  const [submitting,         setSubmitting]         = useState(false)
+  const [activeCount,        setActiveCount]        = useState<number>(0)
+  const [showLimitModal,     setShowLimitModal]     = useState(false)
 
   useEffect(() => {
     if (isCloud) {
       getCustomers().then(setCustomers)
+      getProjects().then(ps => {
+        setActiveCount(ps.filter(p => !INACTIVE.includes(p.status)).length)
+      })
     }
   }, [isCloud])
 
@@ -43,6 +54,15 @@ export default function NewProjectModal({ onClose, onCreated }: Props) {
     e.preventDefault()
     const effectiveClientName = clientName.trim() || newCustomerName.trim()
     if (!effectiveClientName || !name.trim()) return
+
+    if (isCloud && planInfo) {
+      const limit = maxActiveProjects(planInfo)
+      if (limit !== null && activeCount >= limit) {
+        setShowLimitModal(true)
+        return
+      }
+    }
+
     setSubmitting(true)
 
     let customerId = selectedCustomerId || undefined
@@ -71,6 +91,17 @@ export default function NewProjectModal({ onClose, onCreated }: Props) {
     : clientName
 
   const canSubmit = !submitting && !!effectiveClientName.trim() && !!name.trim()
+
+  if (showLimitModal && planInfo) {
+    const limit = maxActiveProjects(planInfo)
+    return (
+      <PlanLimitModal
+        activeCount={activeCount}
+        limit={limit ?? 0}
+        onClose={() => { setShowLimitModal(false); onClose() }}
+      />
+    )
+  }
 
   return (
     <div

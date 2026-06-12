@@ -23,19 +23,23 @@ async function verifyAdmin(request: NextRequest): Promise<boolean> {
   return !!(user?.email && isAdminEmail(user.email))
 }
 
-function toTenant(row: Record<string, unknown>) {
+function toTenant(row: Record<string, unknown>, orgData?: Record<string, unknown> | null) {
   return {
-    id:             row.id,
-    companyName:    row.company_name,
-    contactName:    row.contact_name,
-    email:          row.email,
-    plan:           row.plan,
-    status:         row.status,
-    invitedAt:      row.invited_at   ?? undefined,
-    authUserId:     row.auth_user_id ?? undefined,
-    organizationId: row.organization_id ?? undefined,
-    createdAt:      row.created_at,
-    updatedAt:      row.updated_at,
+    id:                 row.id,
+    companyName:        row.company_name,
+    contactName:        row.contact_name,
+    email:              row.email,
+    plan:               row.plan,
+    status:             row.status,
+    invitedAt:          row.invited_at      ?? undefined,
+    authUserId:         row.auth_user_id    ?? undefined,
+    organizationId:     row.organization_id ?? undefined,
+    createdAt:          row.created_at,
+    updatedAt:          row.updated_at,
+    // organizations テーブルのサブスクリプション情報
+    orgPlan:            orgData?.plan               ?? null,
+    subscriptionStatus: orgData?.subscription_status ?? null,
+    trialEndsAt:        orgData?.trial_ends_at       ?? null,
   }
 }
 
@@ -47,13 +51,37 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  const { data, error } = await serviceClient()
+  const admin = serviceClient()
+
+  const { data: tenants, error } = await admin
     .from('tenants')
     .select('*')
     .order('created_at', { ascending: false })
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-  return NextResponse.json((data ?? []).map(toTenant))
+  if (!tenants?.length) return NextResponse.json([])
+
+  // organization_id を持つテナントの組織データを取得
+  const orgIds = tenants
+    .map((t: Record<string, unknown>) => t.organization_id as string)
+    .filter(Boolean)
+
+  const orgMap = new Map<string, Record<string, unknown>>()
+  if (orgIds.length > 0) {
+    const { data: orgs } = await admin
+      .from('organizations')
+      .select('id, plan, subscription_status, trial_ends_at')
+      .in('id', orgIds)
+    if (orgs) {
+      orgs.forEach((o: Record<string, unknown>) => orgMap.set(o.id as string, o))
+    }
+  }
+
+  return NextResponse.json(
+    tenants.map((t: Record<string, unknown>) =>
+      toTenant(t, t.organization_id ? orgMap.get(t.organization_id as string) : null)
+    )
+  )
 }
 
 export async function POST(request: NextRequest) {
