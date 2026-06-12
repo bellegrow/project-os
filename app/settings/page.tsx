@@ -14,6 +14,7 @@ import {
 } from '@/lib/settingsSource'
 import { exportProjectsCsv, exportInvoicesCsv, exportCostsCsv } from '@/lib/csv'
 import { PLAN_LABELS, SUB_STATUS_LABEL, SUB_STATUS_CLS, trialDaysLeft, OrgPlanInfo } from '@/lib/planLimits'
+import CsvImportModal from '@/components/CsvImportModal'
 
 const PLAN_CLS: Record<string, string> = {
   'β':       'bg-amber-50 text-amber-700 border border-amber-200',
@@ -32,6 +33,7 @@ export default function SettingsPage() {
   const [exporting, setExporting] = useState<string | null>(null)
   const [exportError, setExportError] = useState<string | null>(null)
   const [logoError, setLogoError] = useState<string | null>(null)
+  const [showImportModal, setShowImportModal] = useState<'customer' | 'project' | null>(null)
   const logoInputRef = useRef<HTMLInputElement>(null)
 
   // ── アカウント設定 ────────────────────────────────────────────
@@ -685,16 +687,41 @@ export default function SettingsPage() {
           </div>
         </form>
 
-        {/* データ出力 */}
+        {/* データ出力・取り込み */}
         <section className="bg-white border border-gray-200 rounded-xl p-5 mt-6">
-          <h2 className="text-sm font-semibold text-gray-700 mb-1">データ出力</h2>
-          <p className="text-xs text-gray-400 mb-4">蓄積したデータをCSVファイルとして書き出します。Excel・スプレッドシートで開けます。</p>
+          <h2 className="text-sm font-semibold text-gray-700 mb-1">データ出力・取り込み</h2>
+          <p className="text-xs text-gray-400 mb-4">CSVで書き出し・取り込みができます。ExcelやNotionからの移行にも使えます。</p>
           {exportError && (
             <div className="flex items-center gap-2 text-xs text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2 mb-3">
               <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
               {exportError}
             </div>
           )}
+
+          {/* 取り込み */}
+          <p className="text-xs font-medium text-gray-600 mb-2">取り込み</p>
+          <div className="space-y-2 mb-4">
+            {[
+              { key: 'customer', label: '顧客CSVを取り込む' },
+              { key: 'project',  label: '案件CSVを取り込む' },
+            ].map(({ key, label }) => (
+              <button
+                key={key}
+                onClick={() => setShowImportModal(key as 'customer' | 'project')}
+                className="w-full flex items-center justify-between px-4 py-2.5 border border-blue-200 bg-blue-50 rounded-lg text-sm text-blue-700 hover:bg-blue-100 transition-colors"
+              >
+                <span>{label}</span>
+                <svg className="w-4 h-4 text-blue-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                  <polyline points="17 8 12 3 7 8" />
+                  <line x1="12" y1="3" x2="12" y2="15" />
+                </svg>
+              </button>
+            ))}
+          </div>
+
+          {/* 書き出し */}
+          <p className="text-xs font-medium text-gray-600 mb-2">書き出し</p>
           <div className="space-y-2">
             {[
               { key: 'projects', label: '案件CSVを出力', fn: exportProjectsCsv },
@@ -713,6 +740,13 @@ export default function SettingsPage() {
             ))}
           </div>
         </section>
+
+        {showImportModal && (
+          <CsvImportModal
+            defaultType={showImportModal}
+            onClose={() => setShowImportModal(null)}
+          />
+        )}
 
         {isCloud === false && (
           <p className="text-xs text-gray-400 text-center mt-4 pb-6">
