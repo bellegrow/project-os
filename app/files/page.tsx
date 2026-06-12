@@ -1,104 +1,90 @@
 'use client'
 
-import { useState } from 'react'
-import { FolderOpen, Search, FileText, Archive, FileCode, File } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
+import { FolderOpen, Search, FileText, Archive, FileCode, File, Image } from 'lucide-react'
 import AppShell from '@/components/AppShell'
-import { IS_DEMO_MODE } from '@/lib/demo'
+import { getAllProjectFiles, getProjects } from '@/lib/dataSource'
+import type { ProjectFile, Project, FileCategory } from '@/lib/types'
 
-type FileType = 'pdf' | 'zip' | 'figma' | 'doc' | 'image'
-
-interface ProjectFile {
-  id: string
-  name: string
-  type: FileType
-  client: string
-  project: string
-  size: string
-  updatedDate: string
-  tags: string[]
+const CATEGORY_LABEL: Record<FileCategory, string> = {
+  document: 'ドキュメント',
+  image:    '画像',
+  pdf:      'PDF',
+  design:   'デザイン',
+  delivery:  '納品物',
+  other:    'その他',
+}
+const CATEGORY_CLS: Record<FileCategory, string> = {
+  document: 'bg-blue-50 text-blue-600',
+  image:    'bg-teal-50 text-teal-600',
+  pdf:      'bg-red-50 text-red-600',
+  design:   'bg-violet-50 text-violet-600',
+  delivery: 'bg-emerald-50 text-emerald-600',
+  other:    'bg-gray-100 text-gray-500',
 }
 
-const DEMO_FILES: ProjectFile[] = [
-  { id: '1', name: '提案書_株式会社サンプル.pdf',          type: 'pdf',   client: '株式会社サンプル',     project: 'コーポレートサイト制作',    size: '2.4 MB', updatedDate: '2026-06-05', tags: ['提案書'] },
-  { id: '2', name: '見積書_LP制作_v2.pdf',                type: 'pdf',   client: '山田デザイン事務所',    project: 'LP制作',               size: '156 KB', updatedDate: '2026-05-20', tags: ['見積書'] },
-  { id: '3', name: '契約書_田中工務店_業務委託.pdf',        type: 'pdf',   client: '田中工務店',          project: '採用サイト制作',           size: '890 KB', updatedDate: '2026-06-07', tags: ['契約書', '要署名'] },
-  { id: '4', name: 'ロゴデータ_BELLE美容室.zip',           type: 'zip',   client: 'BELLE美容室',         project: 'ホームページ制作',          size: '8.2 MB', updatedDate: '2026-04-22', tags: ['素材'] },
-  { id: '5', name: 'ワイヤーフレーム_v3.fig',              type: 'figma', client: '山田建設株式会社',      project: 'コーポレートサイト大規模リニューアル', size: '4.1 MB', updatedDate: '2026-06-01', tags: ['デザイン'] },
-  { id: '6', name: '打ち合わせメモ_初回ヒアリング.md',      type: 'doc',   client: '田中工務店',          project: '採用サイト制作',           size: '12 KB',  updatedDate: '2026-06-03', tags: ['メモ'] },
-  { id: '7', name: '写真素材_さくら整体院.zip',             type: 'zip',   client: 'さくら整体院',         project: 'ホームページリニューアル',   size: '34.5 MB', updatedDate: '2026-03-15', tags: ['素材'] },
-  { id: '8', name: '請求書_BELLE_05月分.pdf',              type: 'pdf',   client: 'BELLE美容室',         project: 'ホームページ制作',          size: '145 KB', updatedDate: '2026-05-01', tags: ['請求書', '入金済み'] },
-  { id: '9', name: 'スタイルガイド_山田デザイン.pdf',       type: 'pdf',   client: '山田デザイン事務所',    project: 'LP制作',               size: '3.8 MB', updatedDate: '2026-05-10', tags: ['デザイン'] },
-]
-
-const TAG_CLS: Record<string, string> = {
-  '提案書':   'bg-blue-50 text-blue-600',
-  '見積書':   'bg-amber-50 text-amber-600',
-  '契約書':   'bg-indigo-50 text-indigo-600',
-  '請求書':   'bg-orange-50 text-orange-600',
-  '素材':     'bg-gray-100 text-gray-500',
-  'デザイン': 'bg-violet-50 text-violet-600',
-  'メモ':     'bg-teal-50 text-teal-600',
-  '要署名':   'bg-red-50 text-red-600',
-  '入金済み': 'bg-emerald-50 text-emerald-600',
-}
-
-function FileIcon({ type }: { type: FileType }) {
+function FileIcon({ category, fileType }: { category: FileCategory; fileType?: string }) {
   const cls = 'w-8 h-8 shrink-0'
-  if (type === 'pdf')   return <FileText className={`${cls} text-red-400`} />
-  if (type === 'zip')   return <Archive className={`${cls} text-amber-400`} />
-  if (type === 'figma') return <FileCode className={`${cls} text-violet-400`} />
-  if (type === 'image') return <File className={`${cls} text-blue-400`} />
+  if (category === 'pdf' || fileType?.includes('pdf'))    return <FileText className={`${cls} text-red-400`} />
+  if (category === 'image' || fileType?.startsWith('image/')) return <Image className={`${cls} text-teal-400`} />
+  if (category === 'design')                               return <FileCode className={`${cls} text-violet-400`} />
+  if (fileType?.includes('zip') || fileType?.includes('archive')) return <Archive className={`${cls} text-amber-400`} />
   return <File className={`${cls} text-gray-400`} />
 }
 
-function formatDate(d: string) {
+function fmtSize(bytes?: number) {
+  if (!bytes) return ''
+  if (bytes < 1024) return `${bytes} B`
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`
+  return `${(bytes / 1024 / 1024).toFixed(1)} MB`
+}
+function fmtDate(d: string) {
   const [y, m, dd] = d.split('-').map(Number)
   return `${y}/${m}/${dd}`
 }
 
 export default function FilesPage() {
+  const router = useRouter()
+  const [files, setFiles] = useState<ProjectFile[]>([])
+  const [projectMap, setProjectMap] = useState<Map<string, Project>>(new Map())
+  const [loading, setLoading] = useState(true)
   const [query, setQuery] = useState('')
 
-  if (!IS_DEMO_MODE) return (
-    <AppShell>
-      <main className="max-w-7xl mx-auto px-4 py-6 lg:px-8">
-        <h2 className="text-base font-semibold text-gray-900 mb-4">ファイル管理</h2>
-        <div className="text-center py-20 text-gray-400">
-          <p className="text-sm font-medium text-gray-500 mb-1">ファイルがありません</p>
-          <p className="text-xs">案件ページからファイルを添付できます</p>
-        </div>
-      </main>
-    </AppShell>
-  )
+  useEffect(() => {
+    async function load() {
+      const [fs, projs] = await Promise.all([getAllProjectFiles(), getProjects()])
+      setFiles(fs.sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)))
+      setProjectMap(new Map(projs.map(p => [p.id, p])))
+      setLoading(false)
+    }
+    load()
+  }, [])
 
   const filtered = query.trim()
-    ? DEMO_FILES.filter(f =>
-        f.name.toLowerCase().includes(query.toLowerCase()) ||
-        f.client.toLowerCase().includes(query.toLowerCase()) ||
-        f.project.toLowerCase().includes(query.toLowerCase()) ||
-        f.tags.some(t => t.includes(query))
-      )
-    : DEMO_FILES
+    ? files.filter(f => {
+        const proj = projectMap.get(f.projectId)
+        const q = query.toLowerCase()
+        return (
+          f.name.toLowerCase().includes(q) ||
+          proj?.name.toLowerCase().includes(q) ||
+          proj?.clientName.toLowerCase().includes(q) ||
+          CATEGORY_LABEL[f.category].includes(q) ||
+          (f.note ?? '').toLowerCase().includes(q)
+        )
+      })
+    : files
 
   return (
     <AppShell>
       <main className="max-w-7xl mx-auto px-4 py-6 lg:px-8">
 
-        {/* デモバナー */}
-        <div className="bg-blue-50 border border-blue-200 rounded-xl px-4 py-2.5 flex items-center gap-2 mb-4">
-          <span className="text-xs text-blue-700 font-medium">デモデータを表示中</span>
-          <span className="text-xs text-blue-500">— 案件・タスクを登録すると実データに切り替わります</span>
-        </div>
-
-        {/* ページタイトル */}
         <div className="mb-5">
           <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
             <FolderOpen className="w-5 h-5 text-gray-700" />
             ファイル管理
           </h2>
-          <p className="text-xs text-gray-400 mt-0.5">
-            {filtered.length}件のファイル
-          </p>
+          {!loading && <p className="text-xs text-gray-400 mt-0.5">{filtered.length}件のファイル</p>}
         </div>
 
         {/* 検索バー */}
@@ -108,69 +94,82 @@ export default function FilesPage() {
             type="text"
             value={query}
             onChange={e => setQuery(e.target.value)}
-            placeholder="ファイル名・顧客名・案件名・タグで検索"
+            placeholder="ファイル名・顧客名・案件名・カテゴリで検索"
             className="w-full bg-white border border-gray-200 rounded-xl pl-9 pr-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           />
         </div>
 
-        {/* ファイル一覧 */}
-        <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-gray-100 text-xs text-gray-400">
-                  <th className="text-left px-4 py-3 font-medium">ファイル名</th>
-                  <th className="text-left px-4 py-3 font-medium hidden sm:table-cell">顧客 / 案件</th>
-                  <th className="text-left px-4 py-3 font-medium hidden lg:table-cell">タグ</th>
-                  <th className="text-right px-4 py-3 font-medium hidden lg:table-cell">サイズ</th>
-                  <th className="text-left px-4 py-3 font-medium hidden sm:table-cell">更新日</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-50">
-                {filtered.map(file => (
-                  <tr key={file.id} className="hover:bg-gray-50 transition-colors group">
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-3">
-                        <FileIcon type={file.type} />
-                        <div className="min-w-0">
-                          <p className="text-sm font-medium text-gray-900 truncate max-w-[200px] group-hover:text-blue-600 transition-colors">
-                            {file.name}
-                          </p>
-                          <p className="text-xs text-gray-400 sm:hidden truncate">{file.client}</p>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-4 py-3 hidden sm:table-cell">
-                      <p className="text-xs text-gray-400">{file.client}</p>
-                      <p className="text-xs text-gray-600 truncate max-w-[180px]">{file.project}</p>
-                    </td>
-                    <td className="px-4 py-3 hidden lg:table-cell">
-                      <div className="flex flex-wrap gap-1">
-                        {file.tags.map(tag => (
-                          <span
-                            key={tag}
-                            className={`text-[10px] font-medium px-1.5 py-0.5 rounded ${TAG_CLS[tag] ?? 'bg-gray-100 text-gray-500'}`}
-                          >
-                            {tag}
-                          </span>
-                        ))}
-                      </div>
-                    </td>
-                    <td className="px-4 py-3 text-right text-xs text-gray-400 tabular-nums hidden lg:table-cell">{file.size}</td>
-                    <td className="px-4 py-3 text-xs text-gray-400 hidden sm:table-cell">{formatDate(file.updatedDate)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+        {loading ? (
+          <div className="bg-white border border-gray-200 rounded-xl p-8 text-center text-xs text-gray-400">読み込み中...</div>
+        ) : files.length === 0 ? (
+          <div className="text-center py-20 text-gray-400">
+            <p className="text-sm font-medium text-gray-500 mb-1">ファイルがありません</p>
+            <p className="text-xs">案件ページからファイルを添付できます</p>
           </div>
-
-          {filtered.length === 0 && (
-            <div className="text-center py-12 text-gray-400">
-              <FolderOpen className="w-8 h-8 mx-auto mb-2 text-gray-300" />
-              <p className="text-sm">「{query}」に一致するファイルがありません</p>
+        ) : (
+          <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b border-gray-100 text-xs text-gray-400">
+                    <th className="text-left px-4 py-3 font-medium">ファイル名</th>
+                    <th className="text-left px-4 py-3 font-medium hidden sm:table-cell">顧客 / 案件</th>
+                    <th className="text-left px-4 py-3 font-medium hidden md:table-cell">カテゴリ</th>
+                    <th className="text-right px-4 py-3 font-medium hidden lg:table-cell">サイズ</th>
+                    <th className="text-left px-4 py-3 font-medium hidden sm:table-cell">更新日</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-50">
+                  {filtered.map(f => {
+                    const proj = projectMap.get(f.projectId)
+                    const url = f.externalUrl || f.publicUrl
+                    return (
+                      <tr
+                        key={f.id}
+                        onClick={() => url ? window.open(url, '_blank') : router.push(`/projects/${f.projectId}`)}
+                        className="hover:bg-gray-50 transition-colors cursor-pointer group"
+                      >
+                        <td className="px-4 py-3">
+                          <div className="flex items-center gap-3">
+                            <FileIcon category={f.category} fileType={f.fileType} />
+                            <div className="min-w-0">
+                              <p className="text-sm font-medium text-gray-900 truncate max-w-[200px] group-hover:text-blue-600 transition-colors">
+                                {f.name}
+                              </p>
+                              {f.note && <p className="text-xs text-gray-400 truncate max-w-[200px]">{f.note}</p>}
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-4 py-3 hidden sm:table-cell">
+                          <p className="text-xs text-gray-400 truncate">{proj?.clientName ?? '—'}</p>
+                          <p className="text-xs text-gray-600 truncate max-w-[160px]">{proj?.name ?? '—'}</p>
+                        </td>
+                        <td className="px-4 py-3 hidden md:table-cell">
+                          <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded ${CATEGORY_CLS[f.category]}`}>
+                            {CATEGORY_LABEL[f.category]}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 text-right text-xs text-gray-400 tabular-nums hidden lg:table-cell">
+                          {fmtSize(f.fileSize)}
+                        </td>
+                        <td className="px-4 py-3 text-xs text-gray-400 hidden sm:table-cell">
+                          {fmtDate(f.updatedAt)}
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
             </div>
-          )}
-        </div>
+
+            {filtered.length === 0 && query && (
+              <div className="text-center py-12 text-gray-400">
+                <FolderOpen className="w-8 h-8 mx-auto mb-2 text-gray-300" />
+                <p className="text-sm">「{query}」に一致するファイルがありません</p>
+              </div>
+            )}
+          </div>
+        )}
 
       </main>
     </AppShell>
