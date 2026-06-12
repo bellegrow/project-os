@@ -5,7 +5,7 @@ import { getCurrentOrganizationId } from '@/lib/auth/getCurrentOrganization'
 type ProjectRow = {
   id: string
   user_id: string
-  organization_id: string | null
+  organization_id: string
   customer_id: string | null
   client_name: string
   name: string
@@ -13,6 +13,7 @@ type ProjectRow = {
   budget: number | null
   created_at: string
   updated_at: string
+  deleted_at: string | null
 }
 
 function isConfigured(): boolean {
@@ -25,7 +26,7 @@ function isConfigured(): boolean {
 function fromRow(row: ProjectRow): Project {
   return {
     id: row.id,
-    organizationId: row.organization_id ?? '',
+    organizationId: row.organization_id,
     clientName: row.client_name,
     name: row.name,
     status: row.status as ProjectStatus,
@@ -33,6 +34,7 @@ function fromRow(row: ProjectRow): Project {
     customerId: row.customer_id ?? undefined,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
+    deletedAt: row.deleted_at ?? undefined,
   }
 }
 
@@ -43,7 +45,8 @@ export async function getProjects(): Promise<Project[]> {
   const { data, error } = await supabase
     .from('projects')
     .select('*')
-    .or(`organization_id.eq.${organizationId},organization_id.is.null`)
+    .eq('organization_id', organizationId)
+    .is('deleted_at', null)
     .order('updated_at', { ascending: false })
   if (error || !data) return []
   if (process.env.NODE_ENV === 'development') console.log(`[v1.4.2] getProjects org=${organizationId} count=${data.length}`)
@@ -127,6 +130,18 @@ export async function updateProjectStatus(
 export async function deleteProject(id: string): Promise<void> {
   if (!isConfigured()) return
   const supabase = createClient()
+  await supabase.from('projects').update({ deleted_at: new Date().toISOString() }).eq('id', id)
+}
+
+export async function restoreProject(id: string): Promise<void> {
+  if (!isConfigured()) return
+  const supabase = createClient()
+  await supabase.from('projects').update({ deleted_at: null }).eq('id', id)
+}
+
+export async function hardDeleteProject(id: string): Promise<void> {
+  if (!isConfigured()) return
+  const supabase = createClient()
   await supabase.from('projects').delete().eq('id', id)
 }
 
@@ -137,6 +152,7 @@ export async function getProjectsByCustomer(customerId: string): Promise<Project
     .from('projects')
     .select('*')
     .eq('customer_id', customerId)
+    .is('deleted_at', null)
     .order('updated_at', { ascending: false })
   if (error || !data) return []
   return (data as ProjectRow[]).map(fromRow)

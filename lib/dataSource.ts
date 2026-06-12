@@ -10,7 +10,7 @@
  *   Supabase 側は organization_id カラム + RLS ポリシーで分離を保証する。
  *   参照: lib/auth/getCurrentOrganization.ts
  */
-import { Project, Hearing, ProjectStatus, Customer, Contact, Estimate, EstimateStatus, EstimateInput, Invoice, InvoiceStatus, InvoiceInput, PaymentInput, Contract, ContractStatus, ContractInput, Activity, ActivityInput, Task, TaskInput, TaskUpdateInput, ProjectCost, ProjectCostInput, ProjectCostUpdateInput, ProjectFile, ProjectFileInput, ProjectFileUpdateInput, FileCategory } from './types'
+import { Project, Hearing, ProjectStatus, Customer, Contact, Estimate, EstimateStatus, EstimateInput, Invoice, InvoiceStatus, InvoiceInput, PaymentInput, Contract, ContractStatus, ContractInput, Activity, ActivityInput, Task, TaskInput, TaskUpdateInput, ProjectCost, ProjectCostInput, ProjectCostUpdateInput, ProjectFile, ProjectFileInput, ProjectFileUpdateInput, FileCategory, TrashItem, TrashItemType } from './types'
 import { IS_DEMO_MODE } from './demo'
 import {
   demoProjectMap, demoCustomers, demoHearings, demoHearingsByProject,
@@ -32,6 +32,7 @@ import * as sbActivities from './supabase/activities'
 import * as sbTasks from './supabase/tasks'
 import * as sbProjectCosts from './supabase/projectCosts'
 import * as sbProjectFiles from './supabase/projectFiles'
+import * as sbTrash from './supabase/trash'
 
 function isConfigured(): boolean {
   return !!(
@@ -573,4 +574,47 @@ export async function uploadProjectFile(
 export async function getProjectFileUrl(storagePath: string): Promise<string | null> {
   if (await isCloudMode()) return sbProjectFiles.getProjectFileUrl(storagePath)
   return null
+}
+
+// ─── Trash ───────────────────────────────────────────────────
+
+export async function getTrashItems(): Promise<TrashItem[]> {
+  if (await isCloudMode()) return sbTrash.getTrashItems()
+  return storage.getTrashItems()
+}
+
+export async function restoreTrashItem(type: TrashItemType, id: string): Promise<void> {
+  if (await isCloudMode()) {
+    const ops: Record<TrashItemType, () => Promise<void>> = {
+      customer:     () => sbCustomers.restoreCustomer(id),
+      project:      () => sbProjects.restoreProject(id),
+      task:         () => sbTasks.restoreTask(id),
+      activity:     () => sbActivities.restoreActivity(id),
+      estimate:     () => sbEstimates.restoreEstimate(id),
+      invoice:      () => sbInvoices.restoreInvoice(id),
+      contract:     () => sbContracts.restoreContract(id),
+      project_cost: () => sbProjectCosts.restoreProjectCost(id),
+      project_file: () => sbProjectFiles.restoreProjectFile(id),
+    }
+    return ops[type]()
+  }
+  storage.restoreTrashItem(type, id)
+}
+
+export async function hardDeleteTrashItem(type: TrashItemType, id: string, storagePath?: string): Promise<void> {
+  if (await isCloudMode()) {
+    const ops: Record<TrashItemType, () => Promise<void>> = {
+      customer:     () => sbCustomers.hardDeleteCustomer(id),
+      project:      () => sbProjects.hardDeleteProject(id),
+      task:         () => sbTasks.hardDeleteTask(id),
+      activity:     () => sbActivities.hardDeleteActivity(id),
+      estimate:     () => sbEstimates.hardDeleteEstimate(id),
+      invoice:      () => sbInvoices.hardDeleteInvoice(id),
+      contract:     () => sbContracts.hardDeleteContract(id),
+      project_cost: () => sbProjectCosts.hardDeleteProjectCost(id),
+      project_file: () => sbProjectFiles.hardDeleteProjectFile(id, storagePath),
+    }
+    return ops[type]()
+  }
+  storage.hardDeleteTrashItem(type, id)
 }

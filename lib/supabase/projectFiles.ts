@@ -5,7 +5,7 @@ import { getCurrentOrganizationId } from '@/lib/auth/getCurrentOrganization'
 type FileRow = {
   id: string
   project_id: string
-  organization_id: string | null
+  organization_id: string
   customer_id: string | null
   name: string
   category: string
@@ -17,6 +17,7 @@ type FileRow = {
   note: string | null
   created_at: string
   updated_at: string
+  deleted_at: string | null
 }
 
 function isConfigured(): boolean {
@@ -29,7 +30,7 @@ function isConfigured(): boolean {
 function fromRow(row: FileRow): ProjectFile {
   return {
     id: row.id,
-    organizationId: row.organization_id ?? '',
+    organizationId: row.organization_id,
     projectId: row.project_id,
     customerId: row.customer_id ?? undefined,
     name: row.name,
@@ -42,6 +43,7 @@ function fromRow(row: FileRow): ProjectFile {
     note: row.note ?? undefined,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
+    deletedAt: row.deleted_at ?? undefined,
   }
 }
 
@@ -52,7 +54,8 @@ export async function getAllProjectFiles(): Promise<ProjectFile[]> {
   const { data, error } = await supabase
     .from('project_files')
     .select('*')
-    .or(`organization_id.eq.${organizationId},organization_id.is.null`)
+    .eq('organization_id', organizationId)
+    .is('deleted_at', null)
     .order('created_at', { ascending: false })
   if (error || !data) return []
   if (process.env.NODE_ENV === 'development') console.log(`[v1.4.2] getAllProjectFiles org=${organizationId} count=${data.length}`)
@@ -66,6 +69,7 @@ export async function getProjectFiles(projectId: string): Promise<ProjectFile[]>
     .from('project_files')
     .select('*')
     .eq('project_id', projectId)
+    .is('deleted_at', null)
     .order('created_at', { ascending: false })
   if (error || !data) return []
   return (data as FileRow[]).map(fromRow)
@@ -78,6 +82,7 @@ export async function getProjectFilesByCustomer(customerId: string): Promise<Pro
     .from('project_files')
     .select('*')
     .eq('customer_id', customerId)
+    .is('deleted_at', null)
     .order('created_at', { ascending: false })
   if (error || !data) return []
   return (data as FileRow[]).map(fromRow)
@@ -131,7 +136,20 @@ export async function updateProjectFile(id: string, input: ProjectFileUpdateInpu
   return fromRow(data as FileRow)
 }
 
-export async function deleteProjectFile(id: string, storagePath?: string): Promise<void> {
+export async function deleteProjectFile(id: string, _storagePath?: string): Promise<void> {
+  if (!isConfigured()) return
+  const supabase = createClient()
+  // Storage ファイルはゴミ箱から完全削除時のみ削除する
+  await supabase.from('project_files').update({ deleted_at: new Date().toISOString() }).eq('id', id)
+}
+
+export async function restoreProjectFile(id: string): Promise<void> {
+  if (!isConfigured()) return
+  const supabase = createClient()
+  await supabase.from('project_files').update({ deleted_at: null }).eq('id', id)
+}
+
+export async function hardDeleteProjectFile(id: string, storagePath?: string): Promise<void> {
   if (!isConfigured()) return
   const supabase = createClient()
   if (storagePath) {

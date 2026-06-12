@@ -57,6 +57,12 @@ https://project-os-belleroom-projects.vercel.app/seed
 
 ---
 
+## バージョン
+
+現在のバージョン: **v2.3.0** — 詳細は [CHANGELOG.md](./CHANGELOG.md) を参照
+
+---
+
 ## 主な機能
 
 | 機能 | 説明 |
@@ -78,6 +84,7 @@ https://project-os-belleroom-projects.vercel.app/seed
 | **PDF出力** | 見積書・請求書をA4 PDFとして印刷・保存 |
 | **設定画面** | 事業者情報・振込先・税率・放置判定日数などをカスタマイズ |
 | **データ移行** | localStorageのデータをSupabaseクラウドへワンクリックで移行 |
+| **ゴミ箱** | 削除データを一時保管。復元または完全削除が可能 |
 
 ---
 

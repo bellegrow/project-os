@@ -16,7 +16,7 @@ type InvoiceItemRow = {
 type InvoiceRow = {
   id: string
   user_id: string
-  organization_id: string | null
+  organization_id: string
   project_id: string
   customer_id: string | null
   estimate_id: string | null
@@ -33,6 +33,7 @@ type InvoiceRow = {
   created_at: string
   updated_at: string
   invoice_items?: InvoiceItemRow[]
+  deleted_at: string | null
 }
 
 function isConfigured(): boolean {
@@ -58,7 +59,7 @@ function itemFromRow(row: InvoiceItemRow): InvoiceItem {
 function fromRow(row: InvoiceRow): Invoice {
   return {
     id: row.id,
-    organizationId: row.organization_id ?? '',
+    organizationId: row.organization_id,
     projectId: row.project_id,
     customerId: row.customer_id ?? undefined,
     estimateId: row.estimate_id ?? undefined,
@@ -77,6 +78,7 @@ function fromRow(row: InvoiceRow): Invoice {
       .sort((a, b) => a.sortOrder - b.sortOrder),
     createdAt: row.created_at,
     updatedAt: row.updated_at,
+    deletedAt: row.deleted_at ?? undefined,
   }
 }
 
@@ -96,6 +98,7 @@ export async function getInvoices(projectId: string): Promise<Invoice[]> {
     .from('invoices')
     .select('*, invoice_items(*)')
     .eq('project_id', projectId)
+    .is('deleted_at', null)
     .order('created_at', { ascending: false })
   if (error || !data) return []
   return (data as InvoiceRow[]).map(fromRow)
@@ -108,7 +111,8 @@ export async function getAllInvoices(): Promise<Invoice[]> {
   const { data, error } = await supabase
     .from('invoices')
     .select('*, invoice_items(*)')
-    .or(`organization_id.eq.${organizationId},organization_id.is.null`)
+    .eq('organization_id', organizationId)
+    .is('deleted_at', null)
     .order('created_at', { ascending: false })
   if (error || !data) return []
   if (process.env.NODE_ENV === 'development') console.log(`[v1.4.2] getAllInvoices org=${organizationId} count=${data.length}`)
@@ -266,6 +270,18 @@ export async function cancelPayment(id: string): Promise<Invoice | undefined> {
 }
 
 export async function deleteInvoice(id: string): Promise<void> {
+  if (!isConfigured()) return
+  const supabase = createClient()
+  await supabase.from('invoices').update({ deleted_at: new Date().toISOString() }).eq('id', id)
+}
+
+export async function restoreInvoice(id: string): Promise<void> {
+  if (!isConfigured()) return
+  const supabase = createClient()
+  await supabase.from('invoices').update({ deleted_at: null }).eq('id', id)
+}
+
+export async function hardDeleteInvoice(id: string): Promise<void> {
   if (!isConfigured()) return
   const supabase = createClient()
   // invoice_items は ON DELETE CASCADE で自動削除

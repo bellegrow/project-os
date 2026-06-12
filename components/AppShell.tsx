@@ -7,7 +7,7 @@ import { IS_DEMO_MODE } from '@/lib/demo'
 import {
   LayoutDashboard, Users, Briefcase, ListTodo, MessageSquare,
   FileText, ScrollText, TrendingUp, FolderOpen, Settings, Search,
-  ChevronLeft, ChevronRight, LogOut,
+  ChevronLeft, ChevronRight, LogOut, Trash2,
 } from 'lucide-react'
 import AppNavTabs from './AppNavTabs'
 import StorageModeBadge from './StorageModeBadge'
@@ -39,9 +39,10 @@ const NAV_COLORS: Record<string, { activeBg: string; activeIcon: string; mutedBg
   finance:    { activeBg: 'bg-emerald-100', activeIcon: 'text-emerald-600', mutedBg: 'bg-emerald-50', mutedIcon: 'text-emerald-400' },
   files:      { activeBg: 'bg-amber-100',   activeIcon: 'text-amber-600',   mutedBg: 'bg-amber-50',   mutedIcon: 'text-amber-400'   },
   settings:   { activeBg: 'bg-gray-100',    activeIcon: 'text-gray-700',    mutedBg: 'bg-gray-50',    mutedIcon: 'text-gray-400'    },
+  trash:      { activeBg: 'bg-gray-100',    activeIcon: 'text-gray-700',    mutedBg: 'bg-gray-50',    mutedIcon: 'text-gray-400'    },
 }
 
-type NavKey = typeof NAV_MAIN[number]['key'] | 'settings' | 'search'
+type NavKey = typeof NAV_MAIN[number]['key'] | 'settings' | 'search' | 'trash'
 
 function getActiveKey(pathname: string): NavKey | null {
   if (pathname === '/dashboard')         return 'dashboard'
@@ -55,6 +56,7 @@ function getActiveKey(pathname: string): NavKey | null {
   if (pathname === '/files')             return 'files'
   if (pathname === '/settings')          return 'settings'
   if (pathname === '/search')            return 'search'
+  if (pathname === '/trash')             return 'trash'
   return null
 }
 
@@ -236,6 +238,16 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
               <Settings className={iconBadge('settings').icon} />
             </div>
             {!collapsed && '設定'}
+          </Link>
+          <Link
+            href="/trash"
+            className={itemCls('trash')}
+            title={collapsed ? 'ゴミ箱' : undefined}
+          >
+            <div className={iconBadge('trash').wrap}>
+              <Trash2 className={iconBadge('trash').icon} />
+            </div>
+            {!collapsed && 'ゴミ箱'}
           </Link>
           {isLoggedIn && (
             <button

@@ -5,13 +5,14 @@ import { getCurrentOrganizationId } from '@/lib/auth/getCurrentOrganization'
 type ActivityRow = {
   id: string
   project_id: string | null
-  organization_id: string | null
+  organization_id: string
   customer_id: string | null
   type: string
   title: string
   body: string | null
   occurred_at: string
   created_at: string
+  deleted_at: string | null
 }
 
 function isConfigured(): boolean {
@@ -24,7 +25,7 @@ function isConfigured(): boolean {
 function fromRow(row: ActivityRow): Activity {
   return {
     id: row.id,
-    organizationId: row.organization_id ?? '',
+    organizationId: row.organization_id,
     projectId: row.project_id ?? undefined,
     customerId: row.customer_id ?? undefined,
     type: row.type as Activity['type'],
@@ -32,6 +33,7 @@ function fromRow(row: ActivityRow): Activity {
     body: row.body ?? undefined,
     occurredAt: row.occurred_at,
     createdAt: row.created_at,
+    deletedAt: row.deleted_at ?? undefined,
   }
 }
 
@@ -42,7 +44,8 @@ export async function getAllActivities(): Promise<Activity[]> {
   const { data, error } = await supabase
     .from('activities')
     .select('*')
-    .or(`organization_id.eq.${organizationId},organization_id.is.null`)
+    .eq('organization_id', organizationId)
+    .is('deleted_at', null)
     .order('occurred_at', { ascending: false })
   if (error || !data) return []
   if (process.env.NODE_ENV === 'development') console.log(`[v1.4.2] getAllActivities org=${organizationId} count=${data.length}`)
@@ -56,6 +59,7 @@ export async function getActivities(projectId: string): Promise<Activity[]> {
     .from('activities')
     .select('*')
     .eq('project_id', projectId)
+    .is('deleted_at', null)
     .order('occurred_at', { ascending: false })
   if (error || !data) return []
   return (data as ActivityRow[]).map(fromRow)
@@ -68,6 +72,7 @@ export async function getActivitiesByCustomer(customerId: string): Promise<Activ
     .from('activities')
     .select('*')
     .eq('customer_id', customerId)
+    .is('deleted_at', null)
     .order('occurred_at', { ascending: false })
   if (error || !data) return []
   return (data as ActivityRow[]).map(fromRow)
@@ -79,6 +84,7 @@ export async function getRecentActivities(limit: number): Promise<Activity[]> {
   const { data, error } = await supabase
     .from('activities')
     .select('*')
+    .is('deleted_at', null)
     .order('occurred_at', { ascending: false })
     .limit(limit)
   if (error || !data) return []
@@ -112,6 +118,18 @@ export async function createActivity(input: ActivityInput): Promise<Activity | u
 }
 
 export async function deleteActivity(id: string): Promise<void> {
+  if (!isConfigured()) return
+  const supabase = createClient()
+  await supabase.from('activities').update({ deleted_at: new Date().toISOString() }).eq('id', id)
+}
+
+export async function restoreActivity(id: string): Promise<void> {
+  if (!isConfigured()) return
+  const supabase = createClient()
+  await supabase.from('activities').update({ deleted_at: null }).eq('id', id)
+}
+
+export async function hardDeleteActivity(id: string): Promise<void> {
   if (!isConfigured()) return
   const supabase = createClient()
   await supabase.from('activities').delete().eq('id', id)

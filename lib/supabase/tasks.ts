@@ -6,7 +6,7 @@ import { getCurrentOrganizationId } from '@/lib/auth/getCurrentOrganization'
 type TaskRow = {
   id: string
   project_id: string
-  organization_id: string | null
+  organization_id: string
   customer_id: string | null
   title: string
   description: string | null
@@ -16,6 +16,7 @@ type TaskRow = {
   completed_at: string | null
   created_at: string
   updated_at: string
+  deleted_at: string | null
 }
 
 function isConfigured(): boolean {
@@ -28,7 +29,7 @@ function isConfigured(): boolean {
 function fromRow(row: TaskRow): Task {
   return {
     id: row.id,
-    organizationId: row.organization_id ?? '',
+    organizationId: row.organization_id,
     projectId: row.project_id,
     customerId: row.customer_id ?? undefined,
     title: row.title,
@@ -39,6 +40,7 @@ function fromRow(row: TaskRow): Task {
     completedAt: row.completed_at ?? undefined,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
+    deletedAt: row.deleted_at ?? undefined,
   }
 }
 
@@ -49,7 +51,8 @@ export async function getAllTasks(): Promise<Task[]> {
   const { data, error } = await supabase
     .from('tasks')
     .select('*')
-    .or(`organization_id.eq.${organizationId},organization_id.is.null`)
+    .eq('organization_id', organizationId)
+    .is('deleted_at', null)
     .order('created_at', { ascending: false })
   if (error || !data) return []
   if (process.env.NODE_ENV === 'development') console.log(`[v1.4.2] getAllTasks org=${organizationId} count=${data.length}`)
@@ -63,6 +66,7 @@ export async function getTasks(projectId: string): Promise<Task[]> {
     .from('tasks')
     .select('*')
     .eq('project_id', projectId)
+    .is('deleted_at', null)
     .order('due_date', { ascending: true, nullsFirst: false })
   if (error || !data) return []
   return (data as TaskRow[]).map(fromRow)
@@ -76,6 +80,7 @@ export async function getTasksByCustomer(customerId: string): Promise<Task[]> {
     .select('*')
     .eq('customer_id', customerId)
     .neq('status', 'done')
+    .is('deleted_at', null)
     .order('due_date', { ascending: true, nullsFirst: false })
   if (error || !data) return []
   return (data as TaskRow[]).map(fromRow)
@@ -90,6 +95,7 @@ export async function getTodayTasks(): Promise<Task[]> {
     .select('*')
     .eq('due_date', today)
     .neq('status', 'done')
+    .is('deleted_at', null)
   if (error || !data) return []
   return (data as TaskRow[]).map(fromRow)
 }
@@ -103,6 +109,7 @@ export async function getOverdueTasks(): Promise<Task[]> {
     .select('*')
     .lt('due_date', today)
     .neq('status', 'done')
+    .is('deleted_at', null)
     .order('due_date', { ascending: true })
   if (error || !data) return []
   return (data as TaskRow[]).map(fromRow)
@@ -169,6 +176,18 @@ export async function completeTask(id: string): Promise<Task | undefined> {
 }
 
 export async function deleteTask(id: string): Promise<void> {
+  if (!isConfigured()) return
+  const supabase = createClient()
+  await supabase.from('tasks').update({ deleted_at: new Date().toISOString() }).eq('id', id)
+}
+
+export async function restoreTask(id: string): Promise<void> {
+  if (!isConfigured()) return
+  const supabase = createClient()
+  await supabase.from('tasks').update({ deleted_at: null }).eq('id', id)
+}
+
+export async function hardDeleteTask(id: string): Promise<void> {
   if (!isConfigured()) return
   const supabase = createClient()
   await supabase.from('tasks').delete().eq('id', id)

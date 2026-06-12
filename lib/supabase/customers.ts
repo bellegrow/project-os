@@ -5,13 +5,14 @@ import { getCurrentOrganizationId } from '@/lib/auth/getCurrentOrganization'
 type CustomerRow = {
   id: string
   user_id: string
-  organization_id: string | null
+  organization_id: string
   name: string
   industry: string | null
   website: string | null
   notes: string | null
   created_at: string
   updated_at: string
+  deleted_at: string | null
 }
 
 function isConfigured(): boolean {
@@ -24,13 +25,14 @@ function isConfigured(): boolean {
 function fromRow(row: CustomerRow): Customer {
   return {
     id: row.id,
-    organizationId: row.organization_id ?? '',
+    organizationId: row.organization_id,
     name: row.name,
     industry: row.industry ?? undefined,
     website: row.website ?? undefined,
     notes: row.notes ?? undefined,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
+    deletedAt: row.deleted_at ?? undefined,
   }
 }
 
@@ -41,7 +43,8 @@ export async function getCustomers(): Promise<Customer[]> {
   const { data, error } = await supabase
     .from('customers')
     .select('*')
-    .or(`organization_id.eq.${organizationId},organization_id.is.null`)
+    .eq('organization_id', organizationId)
+    .is('deleted_at', null)
     .order('updated_at', { ascending: false })
   if (error || !data) return []
   if (process.env.NODE_ENV === 'development') console.log(`[v1.4.2] getCustomers org=${organizationId} count=${data.length}`)
@@ -114,7 +117,17 @@ export async function updateCustomer(
 export async function deleteCustomer(id: string): Promise<void> {
   if (!isConfigured()) return
   const supabase = createClient()
-  // contacts は ON DELETE CASCADE で自動削除
-  // projects.customer_id は ON DELETE SET NULL
+  await supabase.from('customers').update({ deleted_at: new Date().toISOString() }).eq('id', id)
+}
+
+export async function restoreCustomer(id: string): Promise<void> {
+  if (!isConfigured()) return
+  const supabase = createClient()
+  await supabase.from('customers').update({ deleted_at: null }).eq('id', id)
+}
+
+export async function hardDeleteCustomer(id: string): Promise<void> {
+  if (!isConfigured()) return
+  const supabase = createClient()
   await supabase.from('customers').delete().eq('id', id)
 }

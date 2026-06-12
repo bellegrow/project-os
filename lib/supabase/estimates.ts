@@ -16,7 +16,7 @@ type EstimateItemRow = {
 type EstimateRow = {
   id: string
   user_id: string
-  organization_id: string | null
+  organization_id: string
   project_id: string
   customer_id: string | null
   title: string
@@ -28,6 +28,7 @@ type EstimateRow = {
   created_at: string
   updated_at: string
   estimate_items?: EstimateItemRow[]
+  deleted_at: string | null
 }
 
 function isConfigured(): boolean {
@@ -53,7 +54,7 @@ function itemFromRow(row: EstimateItemRow): EstimateItem {
 function fromRow(row: EstimateRow): Estimate {
   return {
     id: row.id,
-    organizationId: row.organization_id ?? '',
+    organizationId: row.organization_id,
     projectId: row.project_id,
     customerId: row.customer_id ?? undefined,
     title: row.title,
@@ -67,6 +68,7 @@ function fromRow(row: EstimateRow): Estimate {
       .sort((a, b) => a.sortOrder - b.sortOrder),
     createdAt: row.created_at,
     updatedAt: row.updated_at,
+    deletedAt: row.deleted_at ?? undefined,
   }
 }
 
@@ -86,7 +88,8 @@ export async function getAllEstimates(): Promise<Estimate[]> {
   const { data, error } = await supabase
     .from('estimates')
     .select('*, estimate_items(*)')
-    .or(`organization_id.eq.${organizationId},organization_id.is.null`)
+    .eq('organization_id', organizationId)
+    .is('deleted_at', null)
     .order('created_at', { ascending: false })
   if (error || !data) return []
   if (process.env.NODE_ENV === 'development') console.log(`[v1.4.2] getAllEstimates org=${organizationId} count=${data.length}`)
@@ -100,6 +103,7 @@ export async function getEstimates(projectId: string): Promise<Estimate[]> {
     .from('estimates')
     .select('*, estimate_items(*)')
     .eq('project_id', projectId)
+    .is('deleted_at', null)
     .order('created_at', { ascending: false })
   if (error || !data) return []
   return (data as EstimateRow[]).map(fromRow)
@@ -220,6 +224,18 @@ export async function updateEstimateStatus(id: string, status: EstimateStatus): 
 }
 
 export async function deleteEstimate(id: string): Promise<void> {
+  if (!isConfigured()) return
+  const supabase = createClient()
+  await supabase.from('estimates').update({ deleted_at: new Date().toISOString() }).eq('id', id)
+}
+
+export async function restoreEstimate(id: string): Promise<void> {
+  if (!isConfigured()) return
+  const supabase = createClient()
+  await supabase.from('estimates').update({ deleted_at: null }).eq('id', id)
+}
+
+export async function hardDeleteEstimate(id: string): Promise<void> {
   if (!isConfigured()) return
   const supabase = createClient()
   // estimate_items は ON DELETE CASCADE で自動削除

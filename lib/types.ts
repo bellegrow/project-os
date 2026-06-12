@@ -31,6 +31,7 @@ export interface Project {
   customerId?: string
   createdAt: string
   updatedAt: string
+  deletedAt?: string
 }
 
 export interface Hearing {
@@ -50,6 +51,7 @@ export interface Customer {
   notes?: string
   createdAt: string
   updatedAt: string
+  deletedAt?: string
 }
 
 export interface Contact {
@@ -89,6 +91,7 @@ export interface Estimate {
   items: EstimateItem[]
   createdAt: string
   updatedAt: string
+  deletedAt?: string
 }
 
 export interface EstimateItemInput {
@@ -129,6 +132,7 @@ export interface Contract {
   note?: string
   createdAt: string
   updatedAt: string
+  deletedAt?: string
 }
 
 export interface ContractInput {
@@ -179,6 +183,7 @@ export interface Invoice {
   items: InvoiceItem[]
   createdAt: string
   updatedAt: string
+  deletedAt?: string
 }
 
 export interface PaymentInput {
@@ -240,6 +245,7 @@ export interface Activity {
   body?: string
   occurredAt: string
   createdAt: string
+  deletedAt?: string
 }
 
 export interface ActivityInput {
@@ -269,6 +275,7 @@ export interface Task {
   completedAt?: string
   createdAt: string
   updatedAt: string
+  deletedAt?: string
 }
 
 export interface TaskInput {
@@ -308,6 +315,7 @@ export interface ProjectFile {
   note?: string
   createdAt: string
   updatedAt: string
+  deletedAt?: string
 }
 
 export interface ProjectFileInput {
@@ -346,6 +354,7 @@ export interface ProjectCost {
   costDate: string
   createdAt: string
   updatedAt: string
+  deletedAt?: string
 }
 
 export interface ProjectCostInput {
@@ -392,4 +401,26 @@ export interface SearchResult {
   createdAt: string
   projectId?: string
   customerId?: string
+}
+
+// ─── Trash ───────────────────────────────────────────────────
+
+export type TrashItemType =
+  | 'customer'
+  | 'project'
+  | 'task'
+  | 'activity'
+  | 'estimate'
+  | 'invoice'
+  | 'contract'
+  | 'project_cost'
+  | 'project_file'
+
+export interface TrashItem {
+  id: string
+  type: TrashItemType
+  name: string
+  deletedAt: string
+  meta?: string
+  storagePath?: string
 }

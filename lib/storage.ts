@@ -1,4 +1,4 @@
-import { Project, Hearing, Estimate, EstimateItem, EstimateStatus, EstimateInput, EstimateItemInput, Invoice, InvoiceItem, InvoiceStatus, InvoiceInput, InvoiceItemInput, PaymentInput, Contract, ContractStatus, ContractInput, Activity, ActivityInput, Task, TaskInput, TaskUpdateInput, TaskStatus, ProjectCost, ProjectCostInput, ProjectCostUpdateInput, ProjectFile, ProjectFileInput, ProjectFileUpdateInput } from './types'
+import { Project, Hearing, Estimate, EstimateItem, EstimateStatus, EstimateInput, EstimateItemInput, Invoice, InvoiceItem, InvoiceStatus, InvoiceInput, InvoiceItemInput, PaymentInput, Contract, ContractStatus, ContractInput, Activity, ActivityInput, Task, TaskInput, TaskUpdateInput, TaskStatus, ProjectCost, ProjectCostInput, ProjectCostUpdateInput, ProjectFile, ProjectFileInput, ProjectFileUpdateInput, TrashItem, TrashItemType } from './types'
 import { getTodayStr } from './utils'
 
 const KEYS = {
@@ -31,7 +31,7 @@ function saveAll<T>(key: string, items: T[]): void {
 // Projects
 export function getProjects(): Project[] {
   return getAll<Project>(KEYS.PROJECTS)
-    .filter(p => !p.organizationId || p.organizationId === 'local')
+    .filter(p => (!p.organizationId || p.organizationId === 'local') && !p.deletedAt)
     .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
 }
 
@@ -70,11 +70,16 @@ export function updateProject(
 }
 
 export function deleteProject(id: string): void {
-  saveAll(KEYS.PROJECTS, getAll<Project>(KEYS.PROJECTS).filter((p) => p.id !== id))
-  saveAll(KEYS.HEARINGS, getAll<Hearing>(KEYS.HEARINGS).filter((h) => h.projectId !== id))
-  saveAll(KEYS.ESTIMATES, getAll<Estimate>(KEYS.ESTIMATES).filter((e) => e.projectId !== id))
-  saveAll(KEYS.INVOICES, getAll<Invoice>(KEYS.INVOICES).filter((i) => i.projectId !== id))
-  saveAll(KEYS.CONTRACTS, getAll<Contract>(KEYS.CONTRACTS).filter((c) => c.projectId !== id))
+  const now = new Date().toISOString()
+  saveAll(KEYS.PROJECTS, getAll<Project>(KEYS.PROJECTS).map(p => p.id === id ? { ...p, deletedAt: now } : p))
+}
+
+export function hardDeleteProject(id: string): void {
+  saveAll(KEYS.PROJECTS, getAll<Project>(KEYS.PROJECTS).filter(p => p.id !== id))
+  saveAll(KEYS.HEARINGS, getAll<Hearing>(KEYS.HEARINGS).filter(h => h.projectId !== id))
+  saveAll(KEYS.ESTIMATES, getAll<Estimate>(KEYS.ESTIMATES).filter(e => e.projectId !== id))
+  saveAll(KEYS.INVOICES, getAll<Invoice>(KEYS.INVOICES).filter(i => i.projectId !== id))
+  saveAll(KEYS.CONTRACTS, getAll<Contract>(KEYS.CONTRACTS).filter(c => c.projectId !== id))
 }
 
 export function updateHearing(id: string, memo: string, date?: string): void {
@@ -132,27 +137,27 @@ export function getAllHearings(): Hearing[] {
 }
 
 export function getAllEstimates(): Estimate[] {
-  return getAll<Estimate>(KEYS.ESTIMATES).filter(e => !e.organizationId || e.organizationId === 'local')
+  return getAll<Estimate>(KEYS.ESTIMATES).filter(e => (!e.organizationId || e.organizationId === 'local') && !e.deletedAt)
 }
 
 export function getAllInvoices(): Invoice[] {
-  return getAll<Invoice>(KEYS.INVOICES).filter(i => !i.organizationId || i.organizationId === 'local')
+  return getAll<Invoice>(KEYS.INVOICES).filter(i => (!i.organizationId || i.organizationId === 'local') && !i.deletedAt)
 }
 
 export function getAllContracts(): Contract[] {
-  return getAll<Contract>(KEYS.CONTRACTS).filter(c => !c.organizationId || c.organizationId === 'local')
+  return getAll<Contract>(KEYS.CONTRACTS).filter(c => (!c.organizationId || c.organizationId === 'local') && !c.deletedAt)
 }
 
 export function getAllTasks(): Task[] {
-  return getAll<Task>(KEYS.TASKS).filter(t => !t.organizationId || t.organizationId === 'local')
+  return getAll<Task>(KEYS.TASKS).filter(t => (!t.organizationId || t.organizationId === 'local') && !t.deletedAt)
 }
 
 export function getAllActivities(): Activity[] {
-  return getAll<Activity>(KEYS.ACTIVITIES).filter(a => !a.organizationId || a.organizationId === 'local')
+  return getAll<Activity>(KEYS.ACTIVITIES).filter(a => (!a.organizationId || a.organizationId === 'local') && !a.deletedAt)
 }
 
 export function getAllProjectFiles(): ProjectFile[] {
-  return getAll<ProjectFile>(KEYS.PROJECT_FILES).filter(f => !f.organizationId || f.organizationId === 'local')
+  return getAll<ProjectFile>(KEYS.PROJECT_FILES).filter(f => (!f.organizationId || f.organizationId === 'local') && !f.deletedAt)
 }
 
 // ─── Estimates ───────────────────────────────────────────────
@@ -178,7 +183,7 @@ function computeTotals(items: EstimateItem[], taxRate = 10): { subtotal: number;
 
 export function getEstimates(projectId: string): Estimate[] {
   return getAll<Estimate>(KEYS.ESTIMATES)
-    .filter((e) => e.projectId === projectId)
+    .filter((e) => e.projectId === projectId && !e.deletedAt)
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
 }
 
@@ -249,7 +254,12 @@ export function updateEstimateStatus(id: string, status: EstimateStatus): void {
 }
 
 export function deleteEstimate(id: string): void {
-  saveAll(KEYS.ESTIMATES, getAll<Estimate>(KEYS.ESTIMATES).filter((e) => e.id !== id))
+  const now = new Date().toISOString()
+  saveAll(KEYS.ESTIMATES, getAll<Estimate>(KEYS.ESTIMATES).map(e => e.id === id ? { ...e, deletedAt: now } : e))
+}
+
+export function hardDeleteEstimate(id: string): void {
+  saveAll(KEYS.ESTIMATES, getAll<Estimate>(KEYS.ESTIMATES).filter(e => e.id !== id))
 }
 
 // ─── Invoices ────────────────────────────────────────────────
@@ -275,7 +285,7 @@ function computeInvoiceTotals(items: InvoiceItem[], taxRate = 10): { subtotal: n
 
 export function getInvoices(projectId: string): Invoice[] {
   return getAll<Invoice>(KEYS.INVOICES)
-    .filter((i) => i.projectId === projectId)
+    .filter((i) => i.projectId === projectId && !i.deletedAt)
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
 }
 
@@ -390,14 +400,19 @@ export function cancelPayment(id: string): Invoice | undefined {
 }
 
 export function deleteInvoice(id: string): void {
-  saveAll(KEYS.INVOICES, getAll<Invoice>(KEYS.INVOICES).filter((i) => i.id !== id))
+  const now = new Date().toISOString()
+  saveAll(KEYS.INVOICES, getAll<Invoice>(KEYS.INVOICES).map(i => i.id === id ? { ...i, deletedAt: now } : i))
+}
+
+export function hardDeleteInvoice(id: string): void {
+  saveAll(KEYS.INVOICES, getAll<Invoice>(KEYS.INVOICES).filter(i => i.id !== id))
 }
 
 // ─── Contracts ───────────────────────────────────────────────
 
 export function getContracts(projectId: string): Contract[] {
   return getAll<Contract>(KEYS.CONTRACTS)
-    .filter((c) => c.projectId === projectId)
+    .filter((c) => c.projectId === projectId && !c.deletedAt)
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
 }
 
@@ -466,25 +481,31 @@ export function updateContractStatus(id: string, status: ContractStatus): void {
 }
 
 export function deleteContract(id: string): void {
-  saveAll(KEYS.CONTRACTS, getAll<Contract>(KEYS.CONTRACTS).filter((c) => c.id !== id))
+  const now = new Date().toISOString()
+  saveAll(KEYS.CONTRACTS, getAll<Contract>(KEYS.CONTRACTS).map(c => c.id === id ? { ...c, deletedAt: now } : c))
+}
+
+export function hardDeleteContract(id: string): void {
+  saveAll(KEYS.CONTRACTS, getAll<Contract>(KEYS.CONTRACTS).filter(c => c.id !== id))
 }
 
 // ─── Activities ──────────────────────────────────────────────
 
 export function getActivities(projectId: string): Activity[] {
   return getAll<Activity>(KEYS.ACTIVITIES)
-    .filter((a) => a.projectId === projectId)
+    .filter((a) => a.projectId === projectId && !a.deletedAt)
     .sort((a, b) => new Date(b.occurredAt).getTime() - new Date(a.occurredAt).getTime())
 }
 
 export function getActivitiesByCustomer(customerId: string): Activity[] {
   return getAll<Activity>(KEYS.ACTIVITIES)
-    .filter((a) => a.customerId === customerId)
+    .filter((a) => a.customerId === customerId && !a.deletedAt)
     .sort((a, b) => new Date(b.occurredAt).getTime() - new Date(a.occurredAt).getTime())
 }
 
 export function getRecentActivities(limit: number): Activity[] {
   return getAll<Activity>(KEYS.ACTIVITIES)
+    .filter(a => !a.deletedAt)
     .sort((a, b) => new Date(b.occurredAt).getTime() - new Date(a.occurredAt).getTime())
     .slice(0, limit)
 }
@@ -508,7 +529,12 @@ export function createActivity(input: ActivityInput): Activity {
 }
 
 export function deleteActivity(id: string): void {
-  saveAll(KEYS.ACTIVITIES, getAll<Activity>(KEYS.ACTIVITIES).filter((a) => a.id !== id))
+  const now = new Date().toISOString()
+  saveAll(KEYS.ACTIVITIES, getAll<Activity>(KEYS.ACTIVITIES).map(a => a.id === id ? { ...a, deletedAt: now } : a))
+}
+
+export function hardDeleteActivity(id: string): void {
+  saveAll(KEYS.ACTIVITIES, getAll<Activity>(KEYS.ACTIVITIES).filter(a => a.id !== id))
 }
 
 // ─── Tasks ───────────────────────────────────────────────────
@@ -532,12 +558,12 @@ function sortTasks(tasks: Task[]): Task[] {
 }
 
 export function getTasks(projectId: string): Task[] {
-  return sortTasks(getAll<Task>(KEYS.TASKS).filter((t) => t.projectId === projectId))
+  return sortTasks(getAll<Task>(KEYS.TASKS).filter((t) => t.projectId === projectId && !t.deletedAt))
 }
 
 export function getTasksByCustomer(customerId: string): Task[] {
   return getAll<Task>(KEYS.TASKS)
-    .filter((t) => t.customerId === customerId && t.status !== 'done')
+    .filter((t) => t.customerId === customerId && t.status !== 'done' && !t.deletedAt)
     .sort((a, b) => {
       if (a.dueDate && b.dueDate) return a.dueDate.localeCompare(b.dueDate)
       if (a.dueDate && !b.dueDate) return -1
@@ -548,12 +574,12 @@ export function getTasksByCustomer(customerId: string): Task[] {
 
 export function getTodayTasks(): Task[] {
   const today = getTodayStr()
-  return getAll<Task>(KEYS.TASKS).filter((t) => t.dueDate === today && t.status !== 'done')
+  return getAll<Task>(KEYS.TASKS).filter((t) => t.dueDate === today && t.status !== 'done' && !t.deletedAt)
 }
 
 export function getOverdueTasks(): Task[] {
   const today = getTodayStr()
-  return getAll<Task>(KEYS.TASKS).filter((t) => t.dueDate && t.dueDate < today && t.status !== 'done')
+  return getAll<Task>(KEYS.TASKS).filter((t) => t.dueDate && t.dueDate < today && t.status !== 'done' && !t.deletedAt)
 }
 
 export function createTask(input: TaskInput): Task {
@@ -604,25 +630,30 @@ export function completeTask(id: string): Task | undefined {
 }
 
 export function deleteTask(id: string): void {
-  saveAll(KEYS.TASKS, getAll<Task>(KEYS.TASKS).filter((t) => t.id !== id))
+  const now = new Date().toISOString()
+  saveAll(KEYS.TASKS, getAll<Task>(KEYS.TASKS).map(t => t.id === id ? { ...t, deletedAt: now } : t))
+}
+
+export function hardDeleteTask(id: string): void {
+  saveAll(KEYS.TASKS, getAll<Task>(KEYS.TASKS).filter(t => t.id !== id))
 }
 
 // ─── Project Costs ───────────────────────────────────────────
 
 export function getProjectCosts(projectId: string): ProjectCost[] {
   return getAll<ProjectCost>(KEYS.PROJECT_COSTS)
-    .filter((c) => c.projectId === projectId)
+    .filter((c) => c.projectId === projectId && !c.deletedAt)
     .sort((a, b) => b.costDate.localeCompare(a.costDate))
 }
 
 export function getProjectCostsByCustomer(customerId: string): ProjectCost[] {
   return getAll<ProjectCost>(KEYS.PROJECT_COSTS)
-    .filter((c) => c.customerId === customerId)
+    .filter((c) => c.customerId === customerId && !c.deletedAt)
     .sort((a, b) => b.costDate.localeCompare(a.costDate))
 }
 
 export function getAllProjectCosts(): ProjectCost[] {
-  return getAll<ProjectCost>(KEYS.PROJECT_COSTS).filter(c => !c.organizationId || c.organizationId === 'local')
+  return getAll<ProjectCost>(KEYS.PROJECT_COSTS).filter(c => (!c.organizationId || c.organizationId === 'local') && !c.deletedAt)
 }
 
 export function createProjectCost(input: ProjectCostInput): ProjectCost {
@@ -663,20 +694,25 @@ export function updateProjectCost(id: string, input: ProjectCostUpdateInput): Pr
 }
 
 export function deleteProjectCost(id: string): void {
-  saveAll(KEYS.PROJECT_COSTS, getAll<ProjectCost>(KEYS.PROJECT_COSTS).filter((c) => c.id !== id))
+  const now = new Date().toISOString()
+  saveAll(KEYS.PROJECT_COSTS, getAll<ProjectCost>(KEYS.PROJECT_COSTS).map(c => c.id === id ? { ...c, deletedAt: now } : c))
+}
+
+export function hardDeleteProjectCost(id: string): void {
+  saveAll(KEYS.PROJECT_COSTS, getAll<ProjectCost>(KEYS.PROJECT_COSTS).filter(c => c.id !== id))
 }
 
 // ─── Project Files ───────────────────────────────────────────
 
 export function getProjectFiles(projectId: string): ProjectFile[] {
   return getAll<ProjectFile>(KEYS.PROJECT_FILES)
-    .filter((f) => f.projectId === projectId)
+    .filter((f) => f.projectId === projectId && !f.deletedAt)
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
 }
 
 export function getProjectFilesByCustomer(customerId: string): ProjectFile[] {
   return getAll<ProjectFile>(KEYS.PROJECT_FILES)
-    .filter((f) => f.customerId === customerId)
+    .filter((f) => f.customerId === customerId && !f.deletedAt)
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
 }
 
@@ -716,5 +752,79 @@ export function updateProjectFile(id: string, input: ProjectFileUpdateInput): Pr
 }
 
 export function deleteProjectFile(id: string): void {
-  saveAll(KEYS.PROJECT_FILES, getAll<ProjectFile>(KEYS.PROJECT_FILES).filter((f) => f.id !== id))
+  const now = new Date().toISOString()
+  saveAll(KEYS.PROJECT_FILES, getAll<ProjectFile>(KEYS.PROJECT_FILES).map(f => f.id === id ? { ...f, deletedAt: now } : f))
+}
+
+export function hardDeleteProjectFile(id: string): void {
+  saveAll(KEYS.PROJECT_FILES, getAll<ProjectFile>(KEYS.PROJECT_FILES).filter(f => f.id !== id))
+}
+
+// ─── Trash ───────────────────────────────────────────────────
+
+
+export function getTrashItems(): TrashItem[] {
+  const items: TrashItem[] = []
+  const now = new Date().toISOString()
+
+  const push = <T extends { id: string; deletedAt?: string }>(
+    list: T[],
+    type: TrashItemType,
+    getName: (item: T) => string,
+    getMeta?: (item: T) => string | undefined,
+  ) => {
+    for (const item of list) {
+      if (item.deletedAt) {
+        items.push({ id: item.id, type, name: getName(item), deletedAt: item.deletedAt, meta: getMeta?.(item) })
+      }
+    }
+  }
+
+  push(getAll<Project>(KEYS.PROJECTS).filter(p => !p.organizationId || p.organizationId === 'local'), 'project', p => p.name, p => p.clientName)
+  push(getAll<Estimate>(KEYS.ESTIMATES).filter(e => !e.organizationId || e.organizationId === 'local'), 'estimate', e => e.title)
+  push(getAll<Invoice>(KEYS.INVOICES).filter(i => !i.organizationId || i.organizationId === 'local'), 'invoice', i => i.title)
+  push(getAll<Contract>(KEYS.CONTRACTS).filter(c => !c.organizationId || c.organizationId === 'local'), 'contract', c => c.title)
+  push(getAll<Activity>(KEYS.ACTIVITIES).filter(a => !a.organizationId || a.organizationId === 'local'), 'activity', a => a.title)
+  push(getAll<Task>(KEYS.TASKS).filter(t => !t.organizationId || t.organizationId === 'local'), 'task', t => t.title)
+  push(getAll<ProjectCost>(KEYS.PROJECT_COSTS).filter(c => !c.organizationId || c.organizationId === 'local'), 'project_cost', c => c.title)
+  push(getAll<ProjectFile>(KEYS.PROJECT_FILES).filter(f => !f.organizationId || f.organizationId === 'local'), 'project_file', f => f.name)
+
+  return items.sort((a, b) => new Date(b.deletedAt).getTime() - new Date(a.deletedAt).getTime())
+}
+
+export function restoreTrashItem(type: TrashItemType, id: string): void {
+  const KEY_MAP: Partial<Record<TrashItemType, string>> = {
+    project:      KEYS.PROJECTS,
+    estimate:     KEYS.ESTIMATES,
+    invoice:      KEYS.INVOICES,
+    contract:     KEYS.CONTRACTS,
+    activity:     KEYS.ACTIVITIES,
+    task:         KEYS.TASKS,
+    project_cost: KEYS.PROJECT_COSTS,
+    project_file: KEYS.PROJECT_FILES,
+  }
+  const key = KEY_MAP[type]
+  if (!key) return
+  saveAll(key, (getAll<{ id: string; deletedAt?: string }>(key) as any[]).map((item: any) =>
+    item.id === id ? { ...item, deletedAt: undefined } : item
+  ))
+}
+
+export function hardDeleteTrashItem(type: TrashItemType, id: string): void {
+  const KEY_MAP: Partial<Record<TrashItemType, string>> = {
+    project:      KEYS.PROJECTS,
+    estimate:     KEYS.ESTIMATES,
+    invoice:      KEYS.INVOICES,
+    contract:     KEYS.CONTRACTS,
+    activity:     KEYS.ACTIVITIES,
+    task:         KEYS.TASKS,
+    project_cost: KEYS.PROJECT_COSTS,
+    project_file: KEYS.PROJECT_FILES,
+  }
+  const key = KEY_MAP[type]
+  if (!key) return
+  saveAll(key, (getAll<{ id: string }>(key) as any[]).filter((item: any) => item.id !== id))
+  if (type === 'project') {
+    saveAll(KEYS.HEARINGS, getAll<Hearing>(KEYS.HEARINGS).filter(h => h.projectId !== id))
+  }
 }
