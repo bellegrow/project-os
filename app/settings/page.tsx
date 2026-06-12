@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { Check, Cloud, HardDrive, AlertTriangle, CheckCircle2, XCircle, Download, ImageIcon, Trash2 } from 'lucide-react'
+import { Check, Cloud, HardDrive, AlertTriangle, CheckCircle2, XCircle, Download, ImageIcon, Trash2, Loader2, Crown } from 'lucide-react'
 import AppShell from '@/components/AppShell'
 import { useCloudMode } from '@/lib/hooks/useCloudMode'
 import {
@@ -13,6 +13,13 @@ import {
   SETTINGS_DEFAULTS,
 } from '@/lib/settingsSource'
 import { exportProjectsCsv, exportInvoicesCsv, exportCostsCsv } from '@/lib/csv'
+
+const PLAN_CLS: Record<string, string> = {
+  'β':       'bg-amber-50 text-amber-700 border border-amber-200',
+  'Basic':    'bg-blue-50 text-blue-700 border border-blue-200',
+  'Standard': 'bg-indigo-50 text-indigo-700 border border-indigo-200',
+  'Pro':      'bg-purple-50 text-purple-700 border border-purple-200',
+}
 
 export default function SettingsPage() {
   const isCloud = useCloudMode()
@@ -26,6 +33,16 @@ export default function SettingsPage() {
   const [logoError, setLogoError] = useState<string | null>(null)
   const logoInputRef = useRef<HTMLInputElement>(null)
 
+  // ── アカウント設定 ────────────────────────────────────────────
+  const [profilePlan,   setProfilePlan]   = useState<string | null>(null)
+  const [currentEmail,  setCurrentEmail]  = useState('')
+  const [newEmail,      setNewEmail]      = useState('')
+  const [emailSaving,   setEmailSaving]   = useState(false)
+  const [emailMsg,      setEmailMsg]      = useState('')
+  const [newPassword,   setNewPassword]   = useState('')
+  const [pwSaving,      setPwSaving]      = useState(false)
+  const [pwMsg,         setPwMsg]         = useState('')
+
   useEffect(() => {
     setMounted(true)
   }, [])
@@ -34,7 +51,68 @@ export default function SettingsPage() {
     if (!mounted) return
     if (isCloud === null) return
     getSettings().then((s) => setForm(s))
+    if (isCloud) {
+      ;(async () => {
+        const { createClient } = await import('@/lib/supabase/client')
+        const { data: { session } } = await createClient().auth.getSession()
+        if (!session) return
+        setCurrentEmail(session.user.email ?? '')
+        const res = await fetch('/api/profile', {
+          headers: { Authorization: `Bearer ${session.access_token}` },
+        })
+        if (res.ok) {
+          const data = await res.json()
+          setProfilePlan(data.plan)
+        }
+      })()
+    }
   }, [mounted, isCloud])
+
+  const handleEmailChange = async (e: React.FormEvent) => {
+    e.preventDefault()
+    const trimmed = newEmail.trim()
+    if (!trimmed) return
+    setEmailSaving(true)
+    setEmailMsg('')
+    try {
+      const { createClient } = await import('@/lib/supabase/client')
+      const supabase = createClient()
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) throw new Error('ログインが必要です')
+      const { error } = await supabase.auth.updateUser({ email: trimmed })
+      if (error) throw error
+      // テナントテーブルにも反映
+      await fetch('/api/profile', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
+        body: JSON.stringify({ email: trimmed }),
+      })
+      setEmailMsg('確認メールを送信しました。新しいアドレスで受信を確認してください。')
+      setNewEmail('')
+    } catch (err) {
+      setEmailMsg(err instanceof Error ? err.message : 'メールアドレスの変更に失敗しました')
+    } finally {
+      setEmailSaving(false)
+    }
+  }
+
+  const handlePasswordChange = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (newPassword.length < 6) return
+    setPwSaving(true)
+    setPwMsg('')
+    try {
+      const { createClient } = await import('@/lib/supabase/client')
+      const { error } = await createClient().auth.updateUser({ password: newPassword })
+      if (error) throw error
+      setPwMsg('パスワードを変更しました')
+      setNewPassword('')
+    } catch (err) {
+      setPwMsg(err instanceof Error ? err.message : 'パスワードの変更に失敗しました')
+    } finally {
+      setPwSaving(false)
+    }
+  }
 
   const set = <K extends keyof BusinessSettings>(key: K, value: BusinessSettings[K]) => {
     setForm((prev) => ({ ...prev, [key]: value }))
@@ -97,6 +175,85 @@ export default function SettingsPage() {
     <AppShell>
       <main className="max-w-2xl mx-auto px-4 py-6 lg:px-8">
         <h2 className="text-base font-semibold text-gray-900 mb-6 hidden lg:block">設定</h2>
+
+        {/* アカウント設定（クラウドモード時のみ） */}
+        {isCloud && (
+          <section className="bg-white border border-gray-200 rounded-xl p-5 mb-6">
+            <h2 className="text-sm font-semibold text-gray-700 mb-4">アカウント設定</h2>
+
+            {/* プラン表示 */}
+            <div className="flex items-center gap-2 mb-5 pb-4 border-b border-gray-100">
+              <Crown className="w-4 h-4 text-amber-500 shrink-0" />
+              <span className="text-sm text-gray-700">契約プラン</span>
+              {profilePlan ? (
+                <span className={`ml-auto text-xs font-semibold px-2.5 py-0.5 rounded-full ${PLAN_CLS[profilePlan] ?? 'bg-gray-100 text-gray-600'}`}>
+                  {profilePlan}
+                </span>
+              ) : (
+                <span className="ml-auto text-xs text-gray-400">読み込み中...</span>
+              )}
+            </div>
+
+            {/* メールアドレス変更 */}
+            <div className="mb-5 pb-4 border-b border-gray-100">
+              <p className="text-xs font-medium text-gray-700 mb-1">メールアドレス</p>
+              <p className="text-xs text-gray-500 mb-3">
+                現在: <span className="font-medium text-gray-700">{currentEmail || '—'}</span>
+              </p>
+              <form onSubmit={handleEmailChange} className="flex gap-2">
+                <input
+                  type="email"
+                  value={newEmail}
+                  onChange={e => setNewEmail(e.target.value)}
+                  placeholder="新しいメールアドレス"
+                  autoComplete="off"
+                  className="flex-1 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+                <button
+                  type="submit"
+                  disabled={emailSaving || !newEmail.trim() || newEmail.trim() === currentEmail}
+                  className="bg-blue-600 text-white text-sm font-medium px-3 py-2 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1.5 shrink-0"
+                >
+                  {emailSaving && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                  変更
+                </button>
+              </form>
+              {emailMsg && (
+                <p className={`text-xs mt-2 ${emailMsg.startsWith('確認') ? 'text-blue-600' : 'text-red-500'}`}>
+                  {emailMsg}
+                </p>
+              )}
+            </div>
+
+            {/* パスワード変更 */}
+            <div>
+              <p className="text-xs font-medium text-gray-700 mb-3">パスワード変更</p>
+              <form onSubmit={handlePasswordChange} className="flex gap-2">
+                <input
+                  type="password"
+                  value={newPassword}
+                  onChange={e => setNewPassword(e.target.value)}
+                  placeholder="新しいパスワード（6文字以上）"
+                  autoComplete="new-password"
+                  className="flex-1 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+                <button
+                  type="submit"
+                  disabled={pwSaving || newPassword.length < 6}
+                  className="bg-gray-800 text-white text-sm font-medium px-3 py-2 rounded-lg hover:bg-gray-900 transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1.5 shrink-0"
+                >
+                  {pwSaving && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                  変更
+                </button>
+              </form>
+              {pwMsg && (
+                <p className={`text-xs mt-2 ${pwMsg.includes('変更しました') ? 'text-emerald-600' : 'text-red-500'}`}>
+                  {pwMsg}
+                </p>
+              )}
+            </div>
+          </section>
+        )}
 
         {/* 初期設定チェック */}
         <section className="bg-white border border-gray-200 rounded-xl p-5 mb-6">
