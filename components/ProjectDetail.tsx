@@ -2488,6 +2488,9 @@ export default function ProjectDetail() {
           fromEstimate={creatingFromEstimate ? {
             estimateId: creatingFromEstimate.id,
             title: `${creatingFromEstimate.title} 請求書`,
+            taxRate: creatingFromEstimate.subtotal > 0
+              ? Math.round((creatingFromEstimate.tax / creatingFromEstimate.subtotal) * 100)
+              : docTaxRate,
             items: creatingFromEstimate.items.map((item) => ({
               name: item.name,
               description: item.description,

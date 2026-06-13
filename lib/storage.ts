@@ -80,6 +80,10 @@ export function hardDeleteProject(id: string): void {
   saveAll(KEYS.ESTIMATES, getAll<Estimate>(KEYS.ESTIMATES).filter(e => e.projectId !== id))
   saveAll(KEYS.INVOICES, getAll<Invoice>(KEYS.INVOICES).filter(i => i.projectId !== id))
   saveAll(KEYS.CONTRACTS, getAll<Contract>(KEYS.CONTRACTS).filter(c => c.projectId !== id))
+  saveAll(KEYS.TASKS, getAll<Task>(KEYS.TASKS).filter(t => t.projectId !== id))
+  saveAll(KEYS.PROJECT_COSTS, getAll<ProjectCost>(KEYS.PROJECT_COSTS).filter(c => c.projectId !== id))
+  saveAll(KEYS.PROJECT_FILES, getAll<ProjectFile>(KEYS.PROJECT_FILES).filter(f => f.projectId !== id))
+  saveAll(KEYS.ACTIVITIES, getAll<Activity>(KEYS.ACTIVITIES).filter(a => a.projectId !== id))
 }
 
 export function updateHearing(id: string, memo: string, date?: string): void {
@@ -826,5 +830,12 @@ export function hardDeleteTrashItem(type: TrashItemType, id: string): void {
   saveAll(key, (getAll<{ id: string }>(key) as any[]).filter((item: any) => item.id !== id))
   if (type === 'project') {
     saveAll(KEYS.HEARINGS, getAll<Hearing>(KEYS.HEARINGS).filter(h => h.projectId !== id))
+    saveAll(KEYS.ESTIMATES, getAll<Estimate>(KEYS.ESTIMATES).filter(e => e.projectId !== id))
+    saveAll(KEYS.INVOICES, getAll<Invoice>(KEYS.INVOICES).filter(i => i.projectId !== id))
+    saveAll(KEYS.CONTRACTS, getAll<Contract>(KEYS.CONTRACTS).filter(c => c.projectId !== id))
+    saveAll(KEYS.TASKS, getAll<Task>(KEYS.TASKS).filter(t => t.projectId !== id))
+    saveAll(KEYS.PROJECT_COSTS, getAll<ProjectCost>(KEYS.PROJECT_COSTS).filter(c => c.projectId !== id))
+    saveAll(KEYS.PROJECT_FILES, getAll<ProjectFile>(KEYS.PROJECT_FILES).filter(f => f.projectId !== id))
+    saveAll(KEYS.ACTIVITIES, getAll<Activity>(KEYS.ACTIVITIES).filter(a => a.projectId !== id))
   }
 }

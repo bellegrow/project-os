@@ -7,7 +7,7 @@ import { IS_DEMO_MODE } from '@/lib/demo'
 import {
   LayoutDashboard, Users, Briefcase, ListTodo, MessageSquare,
   FileText, ScrollText, TrendingUp, FolderOpen, Settings, Search,
-  ChevronLeft, ChevronRight, LogOut, Trash2,
+  ChevronLeft, ChevronRight, LogOut, Trash2, Cloud,
 } from 'lucide-react'
 import AppNavTabs from './AppNavTabs'
 import StorageModeBadge from './StorageModeBadge'
@@ -211,6 +211,28 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         <nav className={`flex-1 py-3 space-y-0.5 overflow-y-auto ${collapsed ? 'px-2' : 'px-3'}`}>
           {NAV_MAIN.map((item) => {
             const badge = iconBadge(item.key as NavKey)
+            const isCustomersInLocalMode = item.key === 'customers' && !process.env.NEXT_PUBLIC_SUPABASE_URL
+            if (isCustomersInLocalMode) {
+              return (
+                <div
+                  key={item.key}
+                  className={`flex items-center rounded-lg text-sm whitespace-nowrap text-slate-400 cursor-not-allowed ${
+                    collapsed ? 'justify-center px-0 py-2' : 'gap-2.5 px-2.5 py-1.5'
+                  }`}
+                  title={collapsed ? '顧客管理（クラウド専用）' : undefined}
+                >
+                  <div className={`flex items-center justify-center shrink-0 rounded-md bg-violet-50 ${collapsed ? 'w-8 h-8' : 'w-[26px] h-[26px]'}`}>
+                    <item.icon className={`${collapsed ? 'w-[18px] h-[18px]' : 'w-[14px] h-[14px]'} text-violet-300`} />
+                  </div>
+                  {!collapsed && (
+                    <span className="flex items-center gap-1">
+                      {item.label}
+                      <Cloud className="w-2.5 h-2.5 text-slate-300" />
+                    </span>
+                  )}
+                </div>
+              )
+            }
             return (
               <Link
                 key={item.key}

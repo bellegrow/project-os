@@ -4,7 +4,7 @@ import { useState } from 'react'
 import Link from 'next/link'
 import {
   Cloud, MoreHorizontal, X,
-  MessageSquare, FileText, ScrollText, TrendingUp, FolderOpen, Settings,
+  MessageSquare, FileText, ScrollText, TrendingUp, FolderOpen, Settings, Search,
 } from 'lucide-react'
 import { useCloudMode } from '@/lib/hooks/useCloudMode'
 
@@ -15,6 +15,7 @@ interface Props {
 }
 
 const MORE_ITEMS = [
+  { href: '/search',    label: '検索',       icon: Search        },
   { href: '/meetings',  label: '打ち合わせ', icon: MessageSquare },
   { href: '/billing',   label: '見積・請求', icon: FileText      },
   { href: '/contracts', label: '契約書',     icon: ScrollText    },

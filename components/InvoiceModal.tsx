@@ -17,6 +17,7 @@ interface ItemDraft {
 interface FromEstimateData {
   estimateId: string
   title: string
+  taxRate?: number
   items: Array<{
     name: string
     description?: string
@@ -88,9 +89,10 @@ export default function InvoiceModal({ projectId, customerId, invoice, fromEstim
   const isEdit = !!invoice
   const estimateId = invoice?.estimateId ?? fromEstimate?.estimateId
   // 編集時は保存済みの税額から実効税率を逆算して既存金額を保護する
+  // 見積書から作成時は見積書の税率を優先する
   const effectiveRate = isEdit && (invoice?.subtotal ?? 0) > 0
     ? Math.round((invoice!.tax / invoice!.subtotal) * 100)
-    : (taxRate ?? 10)
+    : (fromEstimate?.taxRate ?? taxRate ?? 10)
 
   const [title, setTitle] = useState(() => {
     if (invoice) return invoice.title

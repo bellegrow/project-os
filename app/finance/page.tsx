@@ -25,6 +25,7 @@ interface ProjectRow {
   cost: number
   profit: number
   profitRate: number
+  deleted: boolean
 }
 
 export default function FinancePage() {
@@ -72,6 +73,7 @@ export default function FinancePage() {
           cost,
           profit,
           profitRate: revenue > 0 ? Math.round((profit / revenue) * 1000) / 10 : 0,
+          deleted: !proj,
         })
       }
       projectRows.sort((a, b) => b.revenue - a.revenue)
@@ -162,8 +164,8 @@ export default function FinancePage() {
                       {rows.map(r => (
                         <tr
                           key={r.id}
-                          onClick={() => router.push(`/projects/${r.id}`)}
-                          className="hover:bg-gray-50 transition-colors cursor-pointer"
+                          onClick={() => !r.deleted && router.push(`/projects/${r.id}`)}
+                          className={`transition-colors ${r.deleted ? 'opacity-50' : 'hover:bg-gray-50 cursor-pointer'}`}
                         >
                           <td className="px-4 py-3">
                             <p className="text-xs text-gray-400">{r.clientName}</p>
@@ -171,9 +173,9 @@ export default function FinancePage() {
                           </td>
                           <td className="px-4 py-3 text-right text-sm tabular-nums text-gray-700">{fmt(r.revenue)}</td>
                           <td className="px-4 py-3 text-right text-sm tabular-nums text-rose-500 hidden sm:table-cell">{fmt(r.cost)}</td>
-                          <td className="px-4 py-3 text-right text-sm tabular-nums font-semibold text-emerald-600">{fmt(r.profit)}</td>
+                          <td className={`px-4 py-3 text-right text-sm tabular-nums font-semibold ${r.profit >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>{fmt(r.profit)}</td>
                           <td className="px-4 py-3 text-right">
-                            <span className={`text-xs font-semibold ${r.profitRate >= 70 ? 'text-emerald-600' : 'text-amber-600'}`}>
+                            <span className={`text-xs font-semibold ${r.profitRate >= 70 ? 'text-emerald-600' : r.profitRate < 0 ? 'text-red-600' : 'text-amber-600'}`}>
                               {r.profitRate}%
                             </span>
                           </td>
@@ -185,8 +187,8 @@ export default function FinancePage() {
                         <td className="px-4 py-3">合計</td>
                         <td className="px-4 py-3 text-right tabular-nums">{fmt(totals.revenue)}</td>
                         <td className="px-4 py-3 text-right tabular-nums text-rose-500 hidden sm:table-cell">{fmt(totals.cost)}</td>
-                        <td className="px-4 py-3 text-right tabular-nums text-emerald-600">{fmt(grossProfit)}</td>
-                        <td className="px-4 py-3 text-right text-emerald-600">{profitRate}%</td>
+                        <td className={`px-4 py-3 text-right tabular-nums ${grossProfit >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>{fmt(grossProfit)}</td>
+                        <td className={`px-4 py-3 text-right ${profitRate >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>{profitRate}%</td>
                       </tr>
                     </tfoot>
                   </table>
