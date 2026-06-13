@@ -43,6 +43,7 @@ export default function SettingsPage() {
   const [newEmail,      setNewEmail]      = useState('')
   const [emailSaving,   setEmailSaving]   = useState(false)
   const [emailMsg,      setEmailMsg]      = useState('')
+  const [pendingEmail,  setPendingEmail]  = useState('')
   const [newPassword,   setNewPassword]   = useState('')
   const [pwSaving,      setPwSaving]      = useState(false)
   const [pwMsg,         setPwMsg]         = useState('')
@@ -116,6 +117,7 @@ export default function SettingsPage() {
       // tenants.email の更新は確認リンククリック後に auth 側で変更が確定してから行う。
       // ここでは行わない（確認前に更新すると auth と不整合になるため）。
       setEmailMsg(`確認メールを ${trimmed} に送信しました。メール内のリンクをクリックすると変更が完了します。現在のアドレスにも通知が届く場合があります。`)
+      setPendingEmail(trimmed)
       setNewEmail('')
     } catch (err) {
       setEmailMsg(err instanceof Error ? err.message : 'メールアドレスの変更に失敗しました')
@@ -305,13 +307,42 @@ export default function SettingsPage() {
                 </button>
               </form>
               {emailMsg && (
-                <p className={`text-xs mt-2 leading-relaxed ${
-                  emailMsg.startsWith('確認メールを') || emailMsg.startsWith('メールアドレスを変更しました')
-                    ? 'text-blue-600'
-                    : 'text-red-500'
-                }`}>
-                  {emailMsg}
-                </p>
+                <div className="mt-2">
+                  <p className={`text-xs leading-relaxed ${
+                    emailMsg.startsWith('確認メールを') || emailMsg.startsWith('メールアドレスを変更しました')
+                      ? 'text-blue-600'
+                      : 'text-red-500'
+                  }`}>
+                    {emailMsg}
+                  </p>
+                  {emailMsg.startsWith('確認メールを') && pendingEmail && (
+                    <button
+                      type="button"
+                      disabled={emailSaving}
+                      onClick={async () => {
+                        setEmailSaving(true)
+                        setEmailMsg('')
+                        try {
+                          const { createClient } = await import('@/lib/supabase/client')
+                          const supabase = createClient()
+                          const { error } = await supabase.auth.updateUser(
+                            { email: pendingEmail },
+                            { emailRedirectTo: `${window.location.origin}/auth/callback` }
+                          )
+                          if (error) throw error
+                          setEmailMsg(`確認メールを ${pendingEmail} に再送しました。`)
+                        } catch (err) {
+                          setEmailMsg(err instanceof Error ? err.message : '再送に失敗しました')
+                        } finally {
+                          setEmailSaving(false)
+                        }
+                      }}
+                      className="mt-1.5 text-xs text-blue-500 hover:text-blue-700 underline disabled:opacity-50"
+                    >
+                      {emailSaving ? '送信中...' : 'メールが届かない場合は再送する'}
+                    </button>
+                  )}
+                </div>
               )}
             </div>
 

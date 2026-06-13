@@ -132,7 +132,7 @@ export default function FinancePage() {
           </div>
           <div className="bg-white border border-gray-200 rounded-xl p-4">
             <p className="text-xs text-gray-400 mb-1">利益率</p>
-            <p className={`text-xl font-bold ${profitRate >= 50 ? 'text-emerald-600' : 'text-amber-600'}`}>{profitRate}%</p>
+            <p className={`text-xl font-bold ${profitRate >= 50 ? 'text-emerald-600' : profitRate < 0 ? 'text-red-600' : 'text-amber-600'}`}>{profitRate}%</p>
           </div>
         </div>
 

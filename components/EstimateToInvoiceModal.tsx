@@ -57,7 +57,9 @@ export default function EstimateToInvoiceModal({
   const [submitting, setSubmitting]   = useState(false)
   const [saveError, setSaveError]     = useState('')
 
-  const effectiveTaxRate = taxRate ?? 10
+  const effectiveTaxRate = estimate.subtotal > 0
+    ? Math.round((estimate.tax / estimate.subtotal) * 100)
+    : (taxRate ?? 10)
   const multiplier       = getMultiplier(selectedPct, customPct)
   const adjustedSubtotal = Math.round(estimate.subtotal * multiplier)
   const adjustedTax      = Math.round(adjustedSubtotal * effectiveTaxRate / 100)

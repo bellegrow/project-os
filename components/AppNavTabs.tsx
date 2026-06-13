@@ -4,7 +4,7 @@ import { useState } from 'react'
 import Link from 'next/link'
 import {
   Cloud, MoreHorizontal, X,
-  MessageSquare, FileText, ScrollText, TrendingUp, FolderOpen, Settings, Search,
+  MessageSquare, FileText, ScrollText, TrendingUp, FolderOpen, Settings, Search, Trash2,
 } from 'lucide-react'
 import { useCloudMode } from '@/lib/hooks/useCloudMode'
 
@@ -21,6 +21,7 @@ const MORE_ITEMS = [
   { href: '/contracts', label: '契約書',     icon: ScrollText    },
   { href: '/finance',   label: '利益管理',   icon: TrendingUp    },
   { href: '/files',     label: 'ファイル管理', icon: FolderOpen  },
+  { href: '/trash',     label: 'ゴミ箱',     icon: Trash2        },
   { href: '/settings',  label: '設定',       icon: Settings      },
 ]
 
