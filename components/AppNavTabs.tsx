@@ -7,6 +7,7 @@ import {
   MessageSquare, FileText, ScrollText, TrendingUp, FolderOpen, Settings, Search, Trash2,
 } from 'lucide-react'
 import { useCloudMode } from '@/lib/hooks/useCloudMode'
+import { IS_DEMO_MODE } from '@/lib/demo'
 
 type Tab = 'dashboard' | 'projects' | 'tasks' | 'customers' | 'more'
 
@@ -44,7 +45,7 @@ export default function AppNavTabs({ current }: Props) {
         <Link href="/projects"  className={tabCls(current === 'projects')}>案件</Link>
         <Link href="/tasks"     className={tabCls(current === 'tasks')}>タスク</Link>
 
-        {isCloud ? (
+        {isCloud || IS_DEMO_MODE ? (
           <Link href="/customers" className={tabCls(current === 'customers')}>顧客</Link>
         ) : (
           <span

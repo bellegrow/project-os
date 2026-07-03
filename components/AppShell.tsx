@@ -211,7 +211,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         <nav className={`flex-1 py-3 space-y-0.5 overflow-y-auto ${collapsed ? 'px-2' : 'px-3'}`}>
           {NAV_MAIN.map((item) => {
             const badge = iconBadge(item.key as NavKey)
-            const isCustomersInLocalMode = item.key === 'customers' && !process.env.NEXT_PUBLIC_SUPABASE_URL
+            const isCustomersInLocalMode = item.key === 'customers' && !process.env.NEXT_PUBLIC_SUPABASE_URL && !IS_DEMO_MODE
             if (isCustomersInLocalMode) {
               return (
                 <div
@@ -336,7 +336,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       )}
 
       {/* ── コンテンツ（children は一度だけ） ───────────────────── */}
-      <div className={`${IS_DEMO_MODE ? 'lg:pt-[3.25rem]' : ''} lg:pt-14 ${collapsed ? 'lg:pl-16' : 'lg:pl-[260px]'}`}>
+      <div className={`${IS_DEMO_MODE ? 'lg:pt-[5.25rem]' : 'lg:pt-14'} ${collapsed ? 'lg:pl-16' : 'lg:pl-[260px]'}`}>
         {children}
       </div>
 
