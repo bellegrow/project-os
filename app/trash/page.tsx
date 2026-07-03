@@ -5,6 +5,8 @@ import { Trash2, RotateCcw, AlertTriangle, X, Loader2 } from 'lucide-react'
 import AppShell from '@/components/AppShell'
 import { TrashItem, TrashItemType } from '@/lib/types'
 import { getTrashItems, restoreTrashItem, hardDeleteTrashItem } from '@/lib/dataSource'
+import { demoTrash } from '@/lib/demoData'
+import { IS_DEMO_MODE } from '@/lib/demo'
 
 const TYPE_LABEL: Record<TrashItemType, string> = {
   customer:     '顧客',
@@ -99,12 +101,17 @@ export default function TrashPage() {
   const [actionId, setActionId] = useState<string | null>(null)
   const [confirmItem, setConfirmItem] = useState<TrashItem | null>(null)
   const [hardDeleteLoading, setHardDeleteLoading] = useState(false)
+  const [isDemo, setIsDemo] = useState(false)
 
   const load = useCallback(async () => {
     setMounted(true)
     setLoading(true)
     try {
-      setItems(await getTrashItems())
+      const trash = await getTrashItems()
+      // デモ: ゴミ箱が空 → デモデータを表示
+      const demo = IS_DEMO_MODE && trash.length === 0
+      setIsDemo(demo)
+      setItems(demo ? demoTrash : trash)
     } finally {
       setLoading(false)
     }
@@ -113,6 +120,11 @@ export default function TrashPage() {
   useEffect(() => { load() }, [load])
 
   const handleRestore = async (item: TrashItem) => {
+    // デモ: バックエンドは触らず一覧から除くだけ
+    if (isDemo) {
+      setItems(prev => prev.filter(i => i.id !== item.id))
+      return
+    }
     setActionId(item.id)
     try {
       await restoreTrashItem(item.type, item.id)
@@ -124,6 +136,12 @@ export default function TrashPage() {
 
   const handleHardDelete = async () => {
     if (!confirmItem) return
+    // デモ: バックエンドは触らず一覧から除くだけ
+    if (isDemo) {
+      setItems(prev => prev.filter(i => i.id !== confirmItem.id))
+      setConfirmItem(null)
+      return
+    }
     setHardDeleteLoading(true)
     try {
       await hardDeleteTrashItem(confirmItem.type, confirmItem.id, confirmItem.storagePath)
@@ -148,6 +166,13 @@ export default function TrashPage() {
             <p className="text-xs text-gray-400 mt-0.5">削除されたデータを復元または完全削除できます</p>
           </div>
         </div>
+
+        {isDemo && (
+          <div className="bg-blue-50 border border-blue-200 rounded-xl px-4 py-2.5 flex items-center gap-2 mb-4">
+            <span className="text-xs text-blue-700 font-medium">デモデータを表示中</span>
+            <span className="text-xs text-blue-500">— クラウドモードで削除したデータの復元・完全削除ができます</span>
+          </div>
+        )}
 
         {loading ? (
           <div className="flex items-center justify-center py-20 text-gray-400">

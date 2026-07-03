@@ -1,6 +1,7 @@
 import type {
   Customer, Project, Task, Contact, Hearing,
   Estimate, Invoice, Contract, ProjectCost, ProjectFile, SearchResult, Activity,
+  TrashItem,
 } from './types'
 
 // ─── date helpers ───────────────────────────────────────────────────────────
@@ -299,6 +300,15 @@ export const demoProjectCosts: ProjectCost[] = withOrg<ProjectCost>([
   { id: 'demo-cost-9', projectId: 'demo-proj-7', customerId: 'demo-cust-7', title: '写真撮影・編集（外注カメラマン）',       category: 'outsourcing', amount: 150000, costDate: agoDate(25), createdAt: ago(25), updatedAt: ago(25) },
   { id: 'demo-cost-10', projectId: 'demo-proj-7', customerId: 'demo-cust-7', title: 'WordPressプレミアムテーマ・プラグイン', category: 'tool',        amount: 28000,  costDate: agoDate(18), createdAt: ago(18), updatedAt: ago(18) },
 ])
+
+// ─── Trash（ゴミ箱） ─────────────────────────────────────────────────────────
+export const demoTrash: TrashItem[] = [
+  { id: 'demo-trash-1', type: 'project',      name: '旧サイト保守案件（2024年度）', meta: '株式会社サンプル',   deletedAt: ago(3)  },
+  { id: 'demo-trash-2', type: 'estimate',     name: 'LP追加ページ 見積書（v1）',     meta: 'BELLE美容室 ・ ¥120,000', deletedAt: ago(5)  },
+  { id: 'demo-trash-3', type: 'task',         name: '初回提案の日程調整',            meta: '田中工務店',         deletedAt: ago(8)  },
+  { id: 'demo-trash-4', type: 'project_file', name: 'デザインカンプ_旧版.fig',       meta: '株式会社山田建設',   deletedAt: ago(12) },
+  { id: 'demo-trash-5', type: 'customer',     name: '株式会社テスト商事',            meta: '重複登録のため削除',  deletedAt: ago(20) },
+]
 
 // ─── Project Files ──────────────────────────────────────────────────────────
 export const demoProjectFiles: ProjectFile[] = withOrg<ProjectFile>([
