@@ -6,6 +6,8 @@ import { MessageSquare } from 'lucide-react'
 import AppShell from '@/components/AppShell'
 import { getAllHearings, getProjects } from '@/lib/dataSource'
 import type { Hearing, Project } from '@/lib/types'
+import { demoHearings, demoProjects } from '@/lib/demoData'
+import { IS_DEMO_MODE } from '@/lib/demo'
 
 function formatDate(d: string) {
   const dt = new Date(d)
@@ -28,6 +30,15 @@ export default function MeetingsPage() {
     load()
   }, [])
 
+  // デモ: 打ち合わせ 0件 → デモデータを表示
+  const isDemo = IS_DEMO_MODE && !loading && hearings.length === 0
+  const dispHearings = isDemo
+    ? [...demoHearings].sort((a, b) => b.date.localeCompare(a.date))
+    : hearings
+  const dispProjectMap = isDemo
+    ? new Map(demoProjects.map(p => [p.id, p]))
+    : projectMap
+
   return (
     <AppShell>
       <main className="max-w-7xl mx-auto px-4 py-6 lg:px-8">
@@ -38,23 +49,30 @@ export default function MeetingsPage() {
             打ち合わせ記録
           </h2>
           {!loading && (
-            <p className="text-xs text-gray-400 mt-0.5">全{hearings.length}件</p>
+            <p className="text-xs text-gray-400 mt-0.5">全{dispHearings.length}件</p>
           )}
         </div>
+
+        {isDemo && (
+          <div className="bg-blue-50 border border-blue-200 rounded-xl px-4 py-2.5 flex items-center gap-2 mb-4">
+            <span className="text-xs text-blue-700 font-medium">デモデータを表示中</span>
+            <span className="text-xs text-blue-500">— クラウドモードで打ち合わせを記録・管理できます</span>
+          </div>
+        )}
 
         {loading ? (
           <div className="bg-white border border-gray-200 rounded-xl p-8 text-center text-xs text-gray-400">
             読み込み中...
           </div>
-        ) : hearings.length === 0 ? (
+        ) : dispHearings.length === 0 ? (
           <div className="text-center py-20 text-gray-400">
             <p className="text-sm font-medium text-gray-500 mb-1">打ち合わせがありません</p>
             <p className="text-xs">案件ページから打ち合わせを記録できます</p>
           </div>
         ) : (
           <div className="space-y-3">
-            {hearings.map(h => {
-              const proj = projectMap.get(h.projectId)
+            {dispHearings.map(h => {
+              const proj = dispProjectMap.get(h.projectId)
               return (
                 <div
                   key={h.id}
