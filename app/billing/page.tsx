@@ -6,6 +6,8 @@ import { FileText, AlertCircle } from 'lucide-react'
 import AppShell from '@/components/AppShell'
 import { getAllEstimates, getAllInvoices, getProjects } from '@/lib/dataSource'
 import type { Estimate, Invoice, Project, EstimateStatus, InvoiceStatus } from '@/lib/types'
+import { demoEstimates, demoInvoices, demoProjects } from '@/lib/demoData'
+import { IS_DEMO_MODE } from '@/lib/demo'
 
 type Tab = 'invoices' | 'estimates'
 
@@ -49,6 +51,7 @@ export default function BillingPage() {
   const [invoices, setInvoices] = useState<Invoice[]>([])
   const [projectMap, setProjectMap] = useState<Map<string, Project>>(new Map())
   const [loading, setLoading] = useState(true)
+  const [isDemo, setIsDemo] = useState(false)
 
   useEffect(() => {
     async function load() {
@@ -57,9 +60,14 @@ export default function BillingPage() {
         getAllInvoices(),
         getProjects(),
       ])
-      const map = new Map(projs.map(p => [p.id, p]))
-      setEstimates(ests.sort((a, b) => b.createdAt.localeCompare(a.createdAt)))
-      setInvoices(invs.sort((a, b) => b.createdAt.localeCompare(a.createdAt)))
+      // デモ: データ0件 → デモデータを表示
+      const demo = IS_DEMO_MODE && ests.length === 0 && invs.length === 0
+      const e = demo ? demoEstimates : ests
+      const i = demo ? demoInvoices : invs
+      const map = new Map((demo ? demoProjects : projs).map(p => [p.id, p]))
+      setIsDemo(demo)
+      setEstimates([...e].sort((a, b) => b.createdAt.localeCompare(a.createdAt)))
+      setInvoices([...i].sort((a, b) => b.createdAt.localeCompare(a.createdAt)))
       setProjectMap(map)
       setLoading(false)
     }
@@ -82,6 +90,13 @@ export default function BillingPage() {
           </h2>
           <p className="text-xs text-gray-400 mt-0.5">請求・見積の一覧と入金状況</p>
         </div>
+
+        {isDemo && (
+          <div className="bg-blue-50 border border-blue-200 rounded-xl px-4 py-2.5 flex items-center gap-2 mb-4">
+            <span className="text-xs text-blue-700 font-medium">デモデータを表示中</span>
+            <span className="text-xs text-blue-500">— クラウドモードで見積・請求を作成・管理できます</span>
+          </div>
+        )}
 
         {/* KPI */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">

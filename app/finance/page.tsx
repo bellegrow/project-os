@@ -5,7 +5,9 @@ import { useRouter } from 'next/navigation'
 import { TrendingUp, TrendingDown } from 'lucide-react'
 import AppShell from '@/components/AppShell'
 import { getAllInvoices, getAllProjectCosts, getProjects } from '@/lib/dataSource'
-import type { Invoice, ProjectCost, Project, CostCategory } from '@/lib/types'
+import type { ProjectCost, Project, CostCategory } from '@/lib/types'
+import { demoInvoices, demoProjectCosts, demoProjects } from '@/lib/demoData'
+import { IS_DEMO_MODE } from '@/lib/demo'
 
 const COST_LABEL: Record<CostCategory, string> = {
   outsourcing: '外注費',
@@ -34,14 +36,22 @@ export default function FinancePage() {
   const [costByCategory, setCostByCategory] = useState<{ category: CostCategory; amount: number }[]>([])
   const [totals, setTotals] = useState({ revenue: 0, cost: 0 })
   const [loading, setLoading] = useState(true)
+  const [isDemo, setIsDemo] = useState(false)
 
   useEffect(() => {
     async function load() {
-      const [invoices, costs, projs] = await Promise.all([
+      const [rawInvoices, rawCosts, rawProjs] = await Promise.all([
         getAllInvoices(),
         getAllProjectCosts(),
         getProjects(),
       ])
+
+      // デモ: データ0件 → デモデータを表示
+      const demo = IS_DEMO_MODE && rawInvoices.length === 0 && rawCosts.length === 0
+      const invoices = demo ? demoInvoices : rawInvoices
+      const costs    = demo ? demoProjectCosts : rawCosts
+      const projs    = demo ? demoProjects : rawProjs
+      setIsDemo(demo)
 
       const projectMap = new Map(projs.map(p => [p.id, p]))
 
@@ -115,6 +125,13 @@ export default function FinancePage() {
           </h2>
           <p className="text-xs text-gray-400 mt-0.5">案件別売上・原価・粗利益の集計</p>
         </div>
+
+        {isDemo && (
+          <div className="bg-blue-50 border border-blue-200 rounded-xl px-4 py-2.5 flex items-center gap-2">
+            <span className="text-xs text-blue-700 font-medium">デモデータを表示中</span>
+            <span className="text-xs text-blue-500">— クラウドモードで実データの利益を集計できます</span>
+          </div>
+        )}
 
         {/* KPIカード */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">

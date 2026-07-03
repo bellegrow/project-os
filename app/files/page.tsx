@@ -6,6 +6,8 @@ import { FolderOpen, Search, FileText, Archive, FileCode, File, Image } from 'lu
 import AppShell from '@/components/AppShell'
 import { getAllProjectFiles, getProjects } from '@/lib/dataSource'
 import type { ProjectFile, Project, FileCategory } from '@/lib/types'
+import { demoProjectFiles, demoProjects } from '@/lib/demoData'
+import { IS_DEMO_MODE } from '@/lib/demo'
 
 const CATEGORY_LABEL: Record<FileCategory, string> = {
   document: 'ドキュメント',
@@ -50,12 +52,17 @@ export default function FilesPage() {
   const [projectMap, setProjectMap] = useState<Map<string, Project>>(new Map())
   const [loading, setLoading] = useState(true)
   const [query, setQuery] = useState('')
+  const [isDemo, setIsDemo] = useState(false)
 
   useEffect(() => {
     async function load() {
       const [fs, projs] = await Promise.all([getAllProjectFiles(), getProjects()])
-      setFiles(fs.sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)))
-      setProjectMap(new Map(projs.map(p => [p.id, p])))
+      // デモ: データ0件 → デモデータを表示
+      const demo = IS_DEMO_MODE && fs.length === 0
+      const f = demo ? demoProjectFiles : fs
+      setIsDemo(demo)
+      setFiles([...f].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)))
+      setProjectMap(new Map((demo ? demoProjects : projs).map(p => [p.id, p])))
       setLoading(false)
     }
     load()
@@ -86,6 +93,13 @@ export default function FilesPage() {
           </h2>
           {!loading && <p className="text-xs text-gray-400 mt-0.5">{filtered.length}件のファイル</p>}
         </div>
+
+        {isDemo && (
+          <div className="bg-blue-50 border border-blue-200 rounded-xl px-4 py-2.5 flex items-center gap-2 mb-4">
+            <span className="text-xs text-blue-700 font-medium">デモデータを表示中</span>
+            <span className="text-xs text-blue-500">— クラウドモードでファイルを管理できます</span>
+          </div>
+        )}
 
         {/* 検索バー */}
         <div className="relative mb-5">

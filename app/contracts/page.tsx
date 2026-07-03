@@ -6,6 +6,8 @@ import { ScrollText, CheckCircle2, Send, FileEdit, XCircle } from 'lucide-react'
 import AppShell from '@/components/AppShell'
 import { getAllContracts, getProjects } from '@/lib/dataSource'
 import type { Contract, Project, ContractStatus } from '@/lib/types'
+import { demoContracts, demoProjects } from '@/lib/demoData'
+import { IS_DEMO_MODE } from '@/lib/demo'
 
 const STATUS_CONFIG: Record<ContractStatus, { label: string; icon: React.ElementType; cls: string }> = {
   draft:     { label: '作成中',   icon: FileEdit,    cls: 'bg-gray-100 text-gray-600' },
@@ -26,12 +28,17 @@ export default function ContractsPage() {
   const [contracts, setContracts] = useState<Contract[]>([])
   const [projectMap, setProjectMap] = useState<Map<string, Project>>(new Map())
   const [loading, setLoading] = useState(true)
+  const [isDemo, setIsDemo] = useState(false)
 
   useEffect(() => {
     async function load() {
       const [cs, projs] = await Promise.all([getAllContracts(), getProjects()])
-      setContracts(cs.sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)))
-      setProjectMap(new Map(projs.map(p => [p.id, p])))
+      // デモ: データ0件 → デモデータを表示
+      const demo = IS_DEMO_MODE && cs.length === 0
+      const c = demo ? demoContracts : cs
+      setIsDemo(demo)
+      setContracts([...c].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)))
+      setProjectMap(new Map((demo ? demoProjects : projs).map(p => [p.id, p])))
       setLoading(false)
     }
     load()
@@ -52,6 +59,13 @@ export default function ContractsPage() {
           </h2>
           {!loading && <p className="text-xs text-gray-400 mt-0.5">全{contracts.length}件</p>}
         </div>
+
+        {isDemo && (
+          <div className="bg-blue-50 border border-blue-200 rounded-xl px-4 py-2.5 flex items-center gap-2 mb-4">
+            <span className="text-xs text-blue-700 font-medium">デモデータを表示中</span>
+            <span className="text-xs text-blue-500">— クラウドモードで契約書を作成・管理できます</span>
+          </div>
+        )}
 
         {/* サマリーカード */}
         <div className="grid grid-cols-3 gap-3 mb-6">
